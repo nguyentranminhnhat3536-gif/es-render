@@ -1,0 +1,98 @@
+name: render
+
+# n8n (ES · 2) đẩy file jobs/<id>.json lên repo → workflow này dựng video → đưa MP4 lên Release
+# → ghi results/<id>.json (status, url, duration) để n8n đọc rồi đăng bài.
+on:
+  push:
+    branches: [main]
+    paths: ['jobs/**.json']
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Đường dẫn job, vd jobs/ES-031-20261019.json'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-${{ github.sha }}-${{ github.event.inputs.job }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Tìm job mới
+        id: find
+        run: |
+          if [ -n "${{ github.event.inputs.job }}" ]; then
+            LIST="${{ github.event.inputs.job }}"
+          else
+            LIST=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- 'jobs/*.json' | tr '\n' ' ')
+          fi
+          echo "list=$LIST" >> "$GITHUB_OUTPUT"
+          echo "Jobs: $LIST"
+
+      - uses: actions/setup-node@v4
+        if: steps.find.outputs.list != ''
+        with:
+          node-version: 20
+
+      - uses: actions/setup-python@v5
+        if: steps.find.outputs.list != ''
+        with:
+          python-version: '3.12'
+
+      - name: Cài công cụ (ffmpeg, Chromium, edge-tts)
+        if: steps.find.outputs.list != ''
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-color-emoji fonts-noto-core > /dev/null
+          pip install -q edge-tts==7.3.1
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Dựng video
+        if: steps.find.outputs.list != ''
+        env:
+          RENDER_CONCURRENCY: "3"
+        run: |
+          mkdir -p out
+          for j in ${{ steps.find.outputs.list }}; do
+            echo "::group::$j"
+            node render.mjs "$j" out || echo "render lỗi: $j"
+            echo "::endgroup::"
+          done
+
+      - name: Đưa video lên Release + ghi kết quả
+        if: always() && steps.find.outputs.list != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="videos-$(date -u +%Y-%m)"
+          gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "Video ETHAN STUDIO dựng tự động" > /dev/null
+          mkdir -p results
+          for j in ${{ steps.find.outputs.list }}; do
+            id=$(basename "$j" .json)
+            r="out/$id.result.json"
+            if [ ! -f "$r" ]; then echo "{\"id\":\"$id\",\"status\":\"error\",\"message\":\"render không tạo kết quả (xem log Actions)\"}" > "$r"; fi
+            if [ "$(jq -r .status "$r")" = "done" ] && [ -f "out/$id.mp4" ]; then
+              gh release upload "$TAG" "out/$id.mp4" --clobber
+              url="https://github.com/${{ github.repository }}/releases/download/$TAG/$id.mp4"
+              jq --arg url "$url" --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '. + {url: $url, run: $run}' "$r" > "results/$id.json"
+            else
+              jq --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '. + {run: $run}' "$r" > "results/$id.json"
+            fi
+            git rm -q --cached "$j" 2>/dev/null || true; rm -f "$j"
+          done
+          git config user.name "es-render-bot"
+          git config user.email "es-render-bot@users.noreply.github.com"
+          git add -A results jobs
+          git commit -q -m "render: kết quả [skip ci]" || exit 0
+          for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done
