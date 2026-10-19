@@ -22,7 +22,7 @@ const outDir = path.resolve(process.argv[3] || 'out');
 if (!jobPath) { console.error('usage: node render.mjs jobs/<id>.json [out_dir]'); process.exit(2); }
 const job = JSON.parse(fs.readFileSync(jobPath, 'utf8'));
 const movie = job.movie || job;
-const id = String(job.id || path.basename(jobPath, '.json')).replace(/[^\w.-]/g, '_');
+const id = String(path.basename(jobPath, '.json') || job.id || 'video').replace(/[^\w.-]/g, '_'); // trùng tên file job để workflow GitHub tìm đúng kết quả
 const work = fs.mkdtempSync(path.join(os.tmpdir(), 'esr-'));
 fs.mkdirSync(outDir, { recursive: true });
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
@@ -139,7 +139,7 @@ function sceneDoc(s, head) {
     const kf = (e.keyframes || []).map((f) => ({ t: num(f.time, 0), x: f.x, y: f.y, width: f.width, height: f.height, opacity: f.opacity, scale: f.scale, rotate: f.rotate, easing: f.easing || '' })).sort((a, b) => a.t - b.t);
     els.push({ id: eid, st, end, fi: num(e['fade-in'], 0), fo: num(e['fade-out'], 0), x: num(e.x, 0), y: num(e.y, 0), w, h, kf, rot: e.rotate ? { a: num(e.rotate.angle, 0), s: num(e.rotate.speed, 1) } : null, zoom: num(e.zoom, 0) });
     const z = num(e['z-index'], 0);
-    const box = 'position:absolute;left:0;top:0;display:none;transform-origin:center center;z-index:' + (z * 100 + k) + ';';
+    const box = 'position:absolute;left:0;top:0;visibility:hidden;transform-origin:center center;z-index:' + (z * 100 + k) + ';';
     if (e.type === 'html') {
       let inner = String(e.html || ''); if (head && inner.startsWith(head)) inner = inner.slice(head.length);
       html += '<div id="' + eid + '" style="' + box + 'width:' + w + 'px;height:' + (h > 0 ? h + 'px' : 'auto') + ';overflow:hidden">' + inner + '</div>';
@@ -168,20 +168,26 @@ const val = (kf, p, lt, base) => { const tr = kf.filter((k) => k[p] !== undefine
   for (let i = 1; i < tr.length; i++) { const a = tr[i - 1], b = tr[i]; if (lt <= b.t) { const u = b.t === a.t ? 1 : (lt - a.t) / (b.t - a.t); return Number(a[p]) + (Number(b[p]) - Number(a[p])) * EASE(b.easing)(Math.max(0, Math.min(1, u))); } }
   return Number(tr[tr.length - 1][p]); };
 window.seek = (t) => { let sig = ''; for (const e of SPEC) { const n = document.getElementById(e.id); if (!n) continue;
-  if (t < e.st - 1e-6 || t >= e.end) { if (n.style.display !== 'none') n.style.display = 'none'; continue; }
+  if (t < e.st - 1e-6 || t >= e.end) { if (n.style.visibility !== 'hidden') n.style.visibility = 'hidden'; continue; }
+  if (e.anims && e.anims.length) { const ms = Math.max(0, t - e.st) * 1000; let moving = false;
+    for (const a of e.anims) { a.currentTime = ms; const tm = a.effect && a.effect.getComputedTiming ? a.effect.getComputedTiming() : null; if (!tm || !(ms >= tm.endTime)) moving = true; }
+    if (moving) sig += e.id + '@' + Math.round(ms) + ';'; }
   const lt = t - e.st; let op = 1; if (e.fi > 0) op = Math.min(op, lt / e.fi); if (e.fo > 0) op = Math.min(op, (e.end - t) / e.fo);
   op = Math.max(0, Math.min(1, op)) * val(e.kf, 'opacity', lt, 1);
   const x = val(e.kf, 'x', lt, e.x), y = val(e.kf, 'y', lt, e.y);
   const w = val(e.kf, 'width', lt, e.w), h = val(e.kf, 'height', lt, e.h);
   let sc = val(e.kf, 'scale', lt, 1); if (e.zoom) sc *= 1 + e.zoom * 0.03 * Math.min(1, lt / Math.max(0.5, e.end - e.st));
   let rot = val(e.kf, 'rotate', lt, 0); if (e.rot) rot += e.rot.a * Math.min(1, lt / Math.max(0.01, e.rot.s));
-  n.style.display = 'block'; n.style.opacity = op; n.style.left = x + 'px'; n.style.top = y + 'px';
+  n.style.visibility = 'visible'; n.style.opacity = op; n.style.left = x + 'px'; n.style.top = y + 'px';
   if (w > 0) n.style.width = w + 'px'; if (h > 0) n.style.height = h + 'px';
   n.style.transform = (sc !== 1 ? 'scale(' + sc + ') ' : '') + (rot ? 'rotate(' + rot + 'deg)' : '');
   sig += e.id + ':' + op.toFixed(3) + ',' + Math.round(x * 2) + ',' + Math.round(y * 2) + ',' + Math.round(w) + ',' + Math.round(h) + ',' + sc.toFixed(4) + ',' + rot.toFixed(2) + ';'; }
   return sig; };
 window.ready = async () => { await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 8000))]);
-  await Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; setTimeout(r, 20000); })))); return true; };
+  await Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; setTimeout(r, 20000); }))));
+  // CSS animation (vẽ nét, trôi nền, nhấp nháy…) dừng lại và tua theo thời gian của từng phần tử
+  for (const e of SPEC) { const n = document.getElementById(e.id); if (!n) continue; e.anims = n.getAnimations({ subtree: true }); e.anims.forEach((a) => a.pause()); }
+  return true; };
 `;
 
 async function loadChromium() {
@@ -313,7 +319,8 @@ async function mixAudio(out, TOTAL) {
       const file = await fetchAudio(e.src); const len = probeDur(file); const seek = Math.max(0, num(e.seek, 0));
       let dur = num(e.duration, -1); if (dur === -2) dur = s.D - num(e.start, 0); if (!(dur > 0)) dur = Math.max(0.05, len - seek);
       dur = Math.min(dur, s.D - num(e.start, 0) + (s.i < scenes.length - 1 ? 0.3 : 0));
-      clips.push({ file, start: st, seek, dur, vol: num(e.volume, 1), fo: num(e['fade-out'], 0), bus: 'fx' });
+      const cm = String(e.comment || ''); const pm = cm.match(/pan=(-?[\d.]+)/); const km = cm.match(/peakAt=([\d.]+)/);
+      clips.push({ file, start: st, seek, dur, vol: num(e.volume, 1), fo: num(e['fade-out'], 0), bus: 'fx', pan: pm ? Math.max(-1, Math.min(1, Number(pm[1]))) : 0, peak: st + (km ? Number(km[1]) : 0), stop: /\bstop\b/.test(cm) });
     }
   }
   const music = (movie.elements || []).find((e) => e.type === 'audio' && e.src);
@@ -321,17 +328,21 @@ async function mixAudio(out, TOTAL) {
   for (const c of clips) {
     args.push('-i', c.file);
     const d = Math.max(0.05, c.dur); const ms = Math.round(c.start * 1000);
+    const gl = c.pan ? Math.cos((c.pan + 1) * Math.PI / 4) * Math.SQRT2 : 1; const gr = c.pan ? Math.sin((c.pan + 1) * Math.PI / 4) * Math.SQRT2 : 1;
     f += '[' + n + ':a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=start=' + r3(c.seek) + ':duration=' + r3(d) + ',asetpts=PTS-STARTPTS,volume=' + c.vol
+      + (c.pan ? ',pan=stereo|c0=' + gl.toFixed(3) + '*c0|c1=' + gr.toFixed(3) + '*c1' : '')
       + (c.fo > 0 ? ',afade=t=out:st=' + r3(Math.max(0, d - c.fo)) + ':d=' + r3(c.fo) : '') + ',adelay=' + ms + ':all=1[c' + n + '];';
     bus[c.bus].push('[c' + n + ']'); n++;
   }
   const mix = (labels, name) => { if (!labels.length) return false; f += labels.join('') + (labels.length > 1 ? 'amix=inputs=' + labels.length + ':normalize=0:dropout_transition=0' : 'anull') + ',apad=whole_dur=' + TOTAL + ',atrim=duration=' + TOTAL + '[' + name + '];'; return true; };
-  const hasVox = mix(bus.vox, 'vox'); const hasFx = mix(bus.fx, 'fx');
+  const hasVox = mix(bus.vox, 'vox'); const hasFx = mix(bus.fx, 'fx0');
+  if (hasFx) f += '[fx0]' + (hasVox ? 'equalizer=f=2500:t=q:w=1.2:g=-3,' : '') + 'anull[fx];';
   let hasMus = false;
   if (music) {
     const mf = await fetchAudio(music.src); args.push('-stream_loop', '-1', '-i', mf);
     const fo = num(music['fade-out'], 1);
-    f += '[' + n + ':a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=duration=' + TOTAL + ',asetpts=PTS-STARTPTS,volume=' + num(music.volume, 0.3) + (fo > 0 ? ',afade=t=out:st=' + r3(Math.max(0, TOTAL - fo)) + ':d=' + r3(fo) : '') + '[mus0];';
+    const stops = clips.filter((c) => c.stop).map((c) => "volume=enable='between(t," + r3(Math.max(0, c.peak - 0.45)) + ',' + r3(c.peak) + ")':volume=0.12").join(',');
+    f += '[' + n + ':a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=duration=' + TOTAL + ',asetpts=PTS-STARTPTS,volume=' + num(music.volume, 0.3) + (stops ? ',' + stops : '') + (fo > 0 ? ',afade=t=out:st=' + r3(Math.max(0, TOTAL - fo)) + ':d=' + r3(fo) : '') + '[mus0];';
     n++; hasMus = true;
     if (hasVox) { f += '[vox]asplit=2[voxm][voxk];[mus0][voxk]sidechaincompress=threshold=0.025:ratio=4:attack=20:release=400[mus];'; } else f += '[mus0]anull[mus];';
   }
