@@ -6,4 +6,47 @@ Bộ dựng video miễn phí cho hệ thống ETHAN STUDIO (n8n · ES · 2). Kh
 
 Chạy thử trên máy: `npm install && pip install edge-tts && node render.mjs jobs/<id>.json out`
 
-Biến môi trường: `RENDER_FPS` (30), `RENDER_CONCURRENCY`, `TARGET_LUFS` (-14), `CHROME_PATH`, `FFMPEG`, `PYTHON`.
+Biến môi trường: `RENDER_FPS` (30), `RENDER_CONCURRENCY`, `TARGET_LUFS` (-14), `CHROME_PATH`, `FFMPEG`, `PYTHON`, `RENDER_CREATIVE` (bold), `RENDER_LOOK` (none). Mỗi video dựng xong được `qa.mjs` kiểm tra (kết quả ở `results/<id>.json` → `qa`).
+
+## Sáng tạo
+
+Mặc định bộ dựng tự làm "đạo diễn" cho mọi job, không cần sửa n8n:
+
+- **Chuyển cảnh đa dạng theo vai trò cảnh** (đọc từ `comment` của cảnh, vd `s02 item · badge_grid`): `fade` mặc định được đổi sang kiểu hợp cảnh, không lặp kiểu liền trước. Cảnh `item` → zoom xuyên / whip-up / smoothup / circleopen…, `feature` → whip / smoothleft / coverleft / hblur…, `offer` → zoom / circleopen, `end_card` → fadewhite / circleclose. Kiểu khác `fade` mà kịch bản chọn sẵn thì giữ nguyên.
+- **Máy quay sống**: mỗi cảnh đẩy vào / kéo ra / trôi nhẹ (tối đa ~4%, không lộ mép).
+- **Nhấn theo SFX**: audio có comment `boom`/`hit`/`impact` → giật zoom + rung đúng `peakAt`; `riser` → đẩy dần tới đỉnh.
+- **Phụ đề `pop`**: từ đang đọc đổi màu + nảy, từ khoá trong `settings.keywords` được tô màu, ngắt dòng theo dấu câu / chỗ ngắt hơi thay vì cắt đều số từ, font tải đúng độ đậm từ Google Fonts.
+
+Cùng một job dựng lại luôn ra cùng một video (ngẫu nhiên theo `seed`, mặc định là id job).
+
+Điều chỉnh bằng `movie.creative` (hoặc env `RENDER_CREATIVE`):
+
+```json
+"creative": "subtle"
+"creative": "off"
+"creative": { "level": "bold", "seed": "lan-2", "transitions": "auto", "camera": true, "beats": true, "subtitles": "boxed-word", "look": "film" }
+```
+
+| Khoá | Giá trị |
+|---|---|
+| `level` | `bold` (mặc định) · `subtle` (chuyển cảnh êm, chuyển động một nửa, không rung) · `off` (giống hệt bản cũ) |
+| `transitions` | `auto` (đổi `fade` mặc định) · `keep` (giữ đúng kịch bản) |
+| `camera` / `beats` | `true` / `false` |
+| `subtitles` | ghi đè kiểu phụ đề, xem bên dưới |
+| `look` | `none` · `film` (hạt + vignette) · `glow` (toả sáng) · `vivid` · `warm` · `cool` · `noir` |
+| `seed` | chuỗi bất kỳ, đổi để ra phương án khác |
+
+### Thêm cho bộ tạo kịch bản
+
+- `transition.style`: mọi kiểu xfade của ffmpeg (`smoothleft`, `circleopen`, `coverup`, `revealleft`, `hblur`, `fadewhite`, `radial`…), thêm `zoom`, `whip`, `whip-up` (dựng bằng máy quay, có nhoè chuyển động), `auto` (để đạo diễn chọn), `none`/`cut` (cắt thẳng).
+- `subtitles.settings.style`: `classic` (karaoke tô dần) · `pop` · `one-word` (từng từ to giữa màn) · `progressive` (chữ hiện dần theo giọng) · `boxed-word` (khung màu sau từ đang đọc) · `boxed-line` (khung tối sau cả dòng). Màu thêm: `keyword-color`, `box-color`, `box-text-color`.
+- Phần tử `html`/`image`: `"animation": "pop"` hoặc `{ "in": "rise", "out": "fade", "duration": 0.45 }` với `fade` `pop` `zoom` `rise` `drop` `slide-left` `slide-right` `slide-up` `slide-down` `blur` `spin` `elastic` `flip`.
+- `keyframes`: thêm thuộc tính `blur` (px); `easing` thêm `ease-out-elastic`, `ease-out-bounce`, `spring`, `ease-in-out-expo`, `*-quart`, `*-circ`, `hold`, `cubic-bezier(x1,y1,x2,y2)`.
+
+- Phần tử `video`: `src`, `seek`, `duration`, `fit` (`cover` · `contain` · `blur` — video ngang trong khung dọc có nền mờ), `muted`, `audio` (file âm thanh thay thế cùng mốc thời gian), `words` (mốc từng từ → phụ đề). Ảnh cũng dùng được làm `video` (tĩnh, có fit + keyframes).
+
+## Thư viện chuyển động và QA
+
+- **GSAP / Anime.js / Lottie / Three.js** trong phần tử `html`: thêm `"libs": ["gsap"]` (nhúng từ `node_modules`, phiên bản cố định trong `package.json`). Trang dựng chạy *đồng hồ ảo* — `requestAnimationFrame`, `performance.now()`, `Date.now()` đi theo thời gian cảnh — nên mọi animation khớp từng khung; WebGL chạy SwiftShader (CPU). Điều khiển chính xác: `ES.onSeek.push((t) => tl.seek(t))`.
+- **QA** (`qa.mjs`): khung đen, đứng hình, không tiếng, sai kích thước/độ dài, độ to lệch -14 LUFS.
+- **Skill Claude Code** `.claude/skills/es-video`: mở repo trong Claude Code rồi nói "làm video 60s giới thiệu …".

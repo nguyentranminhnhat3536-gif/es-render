@@ -66,7 +66,8 @@ jobs:
           mkdir -p out
           for j in ${{ steps.find.outputs.list }}; do
             echo "::group::$j"
-            node render.mjs "$j" out || echo "render lỗi: $j"
+            id=$(basename "$j" .json)
+            node render.mjs "$j" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $j"
             echo "::endgroup::"
           done
 
