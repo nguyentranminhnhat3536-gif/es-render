@@ -158,7 +158,8 @@ const XFADE = (() => {
 })();
 // chuyển cảnh riêng: máy quay trong Chromium tạo đà (zoom xuyên / lia nhanh có nhoè chuyển động), ffmpeg chỉ ghép bằng xfade nền
 // (không dùng xfade "zoomin" của ffmpeg: phóng kiểu nearest nên vỡ hạt)
-const CUSTOM = { zoom: { xf: 'fade', k: 'z' }, whip: { xf: 'slideleft', k: 'x' }, 'whip-up': { xf: 'slideup', k: 'y' } };
+// whip: hai cảnh cùng lao theo một hướng (máy quay) và hoà vào nhau qua nhoè — không dùng slide (lộ đường ghép giữa hai khung)
+const CUSTOM = { zoom: { xf: 'fade', k: 'z' }, whip: { xf: 'hblur', k: 'x' }, 'whip-up': { xf: 'fade', k: 'y' } };
 const okT = (x) => XFADE.has(x) || (!!CUSTOM[x] && XFADE.has(CUSTOM[x].xf));
 // vai trò lấy từ comment "s02 item · badge_grid"; thiếu thì đoán theo vị trí
 function role(s) {
@@ -282,8 +283,11 @@ const camAt = (t) => { const c = window.CAM; if (!c) return null;
       if (b.sh && d >= 0 && d < .4) { const f = b.sh * Math.exp(-d * 14); x += f * Math.sin(d * 56 + b.ph); y += f * Math.cos(d * 47 + b.ph * 1.7); } }
     else if (t >= b.t0) sc += b.a * (d < 0 ? Math.pow((t - b.t0) / Math.max(.05, b.t - b.t0), 2) : Math.exp(-d * 14)); }
   // cảnh trước tăng tốc ra (u: 0 → 1 ở đuôi cảnh), cảnh sau lao vào rồi dừng (u: 1 → 0 ở đầu cảnh)
-  for (const [tl, u] of [[c.out, c.out ? 1 - (c.D - t) / c.out.d : 0], [c.in, c.in ? 1 - t / c.in.d : 0]]) if (tl && u > 0) {
-    const e = Math.min(1, u) ** 2; if (tl.k === 'z') { sc *= 1 + .3 * e; bx += 9 * e; by += 9 * e; } else if (tl.k === 'x') bx += 32 * e; else by += 32 * e; }
+  // whip: phóng nhẹ để có lề rồi trượt cùng hướng (cảnh trước trượt đi, cảnh sau trượt tới rồi dừng) + nhoè chuyển động
+  for (const [tl, u, dir] of [[c.out, c.out ? 1 - (c.D - t) / c.out.d : 0, -1], [c.in, c.in ? 1 - t / c.in.d : 0, 1]]) if (tl && u > 0) {
+    const e = Math.min(1, u) ** 2;
+    if (tl.k === 'z') { sc *= 1 + .3 * e; bx += 9 * e; by += 9 * e; }
+    else { sc *= 1 + .12 * e; if (tl.k === 'x') { x += dir * .06 * WH[0] * e; bx += 32 * e; } else { y += dir * .06 * WH[1] * e; by += 32 * e; } } }
   const mx = (sc - 1) * WH[0] / 2, my = (sc - 1) * WH[1] / 2; x = Math.max(-mx, Math.min(mx, x)); y = Math.max(-my, Math.min(my, y));
   return { tf: 'translate(' + x.toFixed(2) + 'px,' + y.toFixed(2) + 'px) scale(' + sc.toFixed(5) + ')', b: bx > .3 || by > .3 ? bx.toFixed(1) + ' ' + by.toFixed(1) : '' }; };
 const val = (kf, p, lt, base) => { const tr = kf.filter((k) => k[p] !== undefined && k[p] !== null); if (!tr.length) return base;
