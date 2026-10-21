@@ -1,0 +1,131 @@
+{
+  "id": "ES-003-20261021-184243",
+  "status": "done",
+  "duration": 114.6,
+  "width": 1080,
+  "height": 1920,
+  "file": "ES-003-20261021-184243.mp4",
+  "render_seconds": 980,
+  "creative": "bold",
+  "scenes": [
+    {
+      "t": 0,
+      "d": 6.833
+    },
+    {
+      "t": 6.533,
+      "d": 7.533,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 13.767,
+      "d": 6.3,
+      "trans": "hblur",
+      "td": 0.3
+    },
+    {
+      "t": 19.767,
+      "d": 6.033,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 25.5,
+      "d": 7.1,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 32.3,
+      "d": 6.8,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 38.8,
+      "d": 6.5,
+      "trans": "whip",
+      "td": 0.3
+    },
+    {
+      "t": 45,
+      "d": 7.8,
+      "trans": "zoom",
+      "td": 0.3
+    },
+    {
+      "t": 52.5,
+      "d": 7.567,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 59.767,
+      "d": 5.467,
+      "trans": "revealleft",
+      "td": 0.3
+    },
+    {
+      "t": 64.933,
+      "d": 8,
+      "trans": "zoom",
+      "td": 0.3
+    },
+    {
+      "t": 72.633,
+      "d": 6.267,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 78.6,
+      "d": 6.967,
+      "trans": "hblur",
+      "td": 0.3
+    },
+    {
+      "t": 85.267,
+      "d": 7.567,
+      "trans": "whip-up",
+      "td": 0.3
+    },
+    {
+      "t": 92.533,
+      "d": 5.933,
+      "trans": "smoothleft",
+      "td": 0.3
+    },
+    {
+      "t": 98.167,
+      "d": 6.9,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 104.767,
+      "d": 4.5,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 109.067,
+      "d": 5.533,
+      "trans": "fadewhite",
+      "td": 0.2
+    }
+  ],
+  "qa": {
+    "pass": true,
+    "score": 9,
+    "lufs": -14.2,
+    "issues": [
+      {
+        "level": "warn",
+        "msg": "đỉnh âm 0.2 dBFS, có thể vỡ tiếng"
+      }
+    ]
+  },
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-003-20261021-184243.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/39593979658"
+}
