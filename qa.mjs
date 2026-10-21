@@ -56,11 +56,11 @@ function probe(file) {
   return { dur: Number(j.format?.duration) || 0, w: Number(v?.width) || 0, h: Number(v?.height) || 0, fps: Number(fr[0]) / Math.max(1, Number(fr[1]) || 1), hasVideo: !!v, hasAudio: !!a, matrix: v?.color_space || '', pix: v?.pix_fmt || '' };
 }
 
-export async function check(file, { duration, width, height, speech = false, scenes = [] } = {}) {
+export async function check(file, { duration, width, height, speech = false, scenes = [], needAudio = true } = {}) {
   const issues = []; const add = (level, msg) => issues.push({ level, msg });
   const p = probe(file);
   if (!p.hasVideo) return { pass: false, score: 0, issues: [{ level: 'error', msg: 'file không có hình' }] };
-  if (!p.hasAudio) add('error', 'video không có âm thanh');
+  if (!p.hasAudio) add(needAudio ? 'error' : 'warn', 'video không có âm thanh');
   if (p.matrix && p.matrix !== 'bt709') add('warn', 'màu chưa theo chuẩn BT.709 (' + p.matrix + ') — điện thoại có thể hiện lệch màu');
   if (p.pix && p.pix !== 'yuv420p') add('warn', 'định dạng điểm ảnh ' + p.pix + ' (mạng xã hội cần yuv420p)');
   if (width && height && (p.w !== width || p.h !== height)) add('error', 'sai kích thước khung: ' + p.w + 'x' + p.h + ' (cần ' + width + 'x' + height + ')');
@@ -89,7 +89,7 @@ export async function check(file, { duration, width, height, speech = false, sce
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [file, resFile] = process.argv.slice(2);
   const res = resFile && fs.existsSync(resFile) ? JSON.parse(fs.readFileSync(resFile, 'utf8')) : {};
-  check(file, { duration: res.duration, width: res.width, height: res.height, scenes: res.scenes }).then((q) => {
+  check(file, { duration: res.duration, width: res.width, height: res.height, scenes: res.scenes, needAudio: res.engine !== 'hyperframes' }).then((q) => {
     log('QA', path.basename(file), q.pass ? 'đạt' : 'LỖI', q.score + '/10', q.issues.map((i) => i.msg).join('; '));
     if (resFile) fs.writeFileSync(resFile, JSON.stringify({ ...res, qa: q }, null, 1));
   }).catch((e) => { console.error('QA lỗi:', e.message); });

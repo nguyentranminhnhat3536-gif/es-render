@@ -50,3 +50,31 @@ Cùng một job dựng lại luôn ra cùng một video (ngẫu nhiên theo `see
 - **GSAP / Anime.js / Lottie / Three.js** trong phần tử `html`: thêm `"libs": ["gsap"]` (nhúng từ `node_modules`, phiên bản cố định trong `package.json`). Trang dựng chạy *đồng hồ ảo* — `requestAnimationFrame`, `performance.now()`, `Date.now()` đi theo thời gian cảnh — nên mọi animation khớp từng khung; WebGL chạy SwiftShader (CPU). Điều khiển chính xác: `ES.onSeek.push((t) => tl.seek(t))`. Plugin GSAP (SplitText, ScrambleText, DrawSVG, MorphSVG, MotionPath, CustomEase/Bounce/Wiggle, Flip, Physics2D…) cũng chỉ cần thêm tên vào `libs` — tự nạp và đăng ký. `Math.random()` cố định theo seed → dựng lại ra y hệt.
 - **QA** (`qa.mjs`): khung đen, đứng hình, không tiếng, sai kích thước/độ dài, độ to lệch -14 LUFS, chớp hình (1–2 khung lạc), khựng hình ở chỗ nối cảnh (mốc nối ở `result.scenes`).
 - **Skill Claude Code** `.claude/skills/es-video`: mở repo trong Claude Code rồi nói "làm video 60s giới thiệu …".
+
+## HyperFrames (HTML → video, xem trực tiếp khi đang sửa)
+
+[HyperFrames](https://github.com/heygen-com/hyperframes) (HeyGen, Apache 2.0) cũng dựng video từ HTML + GSAP bằng Chrome + FFmpeg như `render.mjs`, nhưng có **studio xem trực tiếp**: sửa file là trình duyệt tự cập nhật. Repo này nhận dự án HyperFrames và dựng chúng trên GitHub Actions như job thường.
+
+### Xem trực tiếp trên máy (không cần tải repo này về)
+
+Cần: [Node.js 22+](https://nodejs.org), [FFmpeg](https://ffmpeg.org/download.html), Claude Code (app desktop hoặc dòng lệnh, gói Pro là đủ).
+
+1. Mở Claude Code trong một thư mục trống bất kỳ, cài plugin HyperFrames (một lần):
+   ```
+   claude plugin marketplace add heygen-com/hyperframes
+   claude plugin install hyperframes@hyperframes
+   ```
+2. Tạo dự án (có thể kèm video gốc): `npx hyperframes init video-cua-toi --resolution portrait --video raw.mp4`
+3. Mở xem trực tiếp: `cd video-cua-toi && npx hyperframes preview` → trình duyệt mở studio ở `http://localhost:3002`.
+4. Nói với Claude hiệu ứng muốn có, ví dụ *"Dùng /hyperframes: thêm phụ đề nhảy chữ, zoom nhẹ ở câu hook, chuyển cảnh whip"* — mỗi lần Claude sửa file, studio tự tải lại để bạn xem ngay.
+5. Xuất file: `npx hyperframes render` (MP4 nằm trong `renders/`).
+
+Xem lại một dự án đã đẩy lên GitHub mà không clone cả repo: `npx giget@latest gh:nguyentranminhnhat3536-gif/es-render/jobs/<tên> <tên>` rồi `cd <tên> && npx hyperframes preview`.
+
+### Dựng trên GitHub
+
+Đẩy cả thư mục dự án vào `jobs/<tên>/` (phải có `index.html`) — bằng git, hoặc trên web GitHub: **Add file → Upload files**, kéo thả thư mục, sửa đường dẫn thành `jobs/<tên>/`. Workflow `render` dựng bằng `hf.mjs` (HyperFrames phiên bản cố định 0.8.181), chạy QA, đưa MP4 lên Release và ghi `results/<tên>.json` (`url`, `qa`). Thư mục dự án được giữ lại: sửa rồi đẩy lại là dựng lại. Mẫu: `examples/hyperframes-hello/`.
+
+Dựng thử trên máy: `node hf.mjs examples/hyperframes-hello out` → `out/hyperframes-hello.mp4`.
+
+`.claude/settings.json` khai báo sẵn plugin HyperFrames: mở repo này bằng Claude Code trên máy (và tin cậy thư mục) là có skill HyperFrames. Job tự động từ n8n vẫn dùng movie JSON + `render.mjs` như cũ.
