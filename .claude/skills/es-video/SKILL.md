@@ -55,5 +55,5 @@ ES.onSeek.push((t) => tl.seek(t - 1.2)); /* t = giây của cảnh; 1.2 = start 
 
 1. Render xong **xem khung hình** (đừng giao khi chưa nhìn):
    `for t in 0.5 2 4 6; do ffmpeg -v error -y -ss $t -i out/<id>.mp4 -frames:v 1 -vf scale=270:-1 f$t.png; done; ffmpeg -v error -y $(for t in 0.5 2 4 6; do echo -i f$t.png; done) -filter_complex hstack=4 strip.png` rồi đọc `strip.png`.
-2. `node qa.mjs out/<id>.mp4 out/<id>.result.json` → khung đen, đứng hình, độ to (-14 LUFS), sai kích thước/độ dài.
+2. `node qa.mjs out/<id>.mp4 out/<id>.result.json` → khung đen, đứng hình, độ to (-14 LUFS), sai kích thước/độ dài, chớp hình 1–2 khung, khựng ở chỗ nối cảnh.
 3. Lỗi hay gặp: chữ tràn khung (giảm cỡ / tăng `height`), font chưa tải (dùng Google Fonts trong `<link>`), animation không chạy (quên `libs`, hoặc dùng `setTimeout` — đồng hồ ảo chỉ điều khiển rAF), phần tử biến mất (đặt `duration` cho cảnh), chữ đè phụ đề (dời `y` phụ đề hoặc `hide`).

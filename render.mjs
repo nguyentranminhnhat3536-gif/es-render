@@ -146,7 +146,8 @@ async function main() {
   const out = path.join(outDir, id + '.mp4');
   await run(FFMPEG, ['-y', '-v', 'error', '-i', vid, '-i', aud, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out]);
   const dur = probeDur(out);
-  const res = { id, status: 'done', duration: r3(dur), width: W, height: H, file: path.basename(out), render_seconds: Math.round((Date.now() - t0) / 1000), creative: CR.level };
+  const res = { id, status: 'done', duration: r3(dur), width: W, height: H, file: path.basename(out), render_seconds: Math.round((Date.now() - t0) / 1000), creative: CR.level,
+    scenes: scenes.map((s) => ({ t: r3(s.T), d: r3(s.D), ...(s.trans ? { trans: s.trans.style, td: r3(s.trans.d) } : {}) })) }; // mốc nối cảnh cho QA
   fs.writeFileSync(path.join(outDir, id + '.result.json'), JSON.stringify(res, null, 1));
   log('done', out, res.duration + 's in', res.render_seconds + 's');
 }
