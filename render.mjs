@@ -204,8 +204,26 @@ function sharedHead() {
   return '';
 }
 // thư viện chuyển động nhúng từ node_modules (không phụ thuộc CDN): phần tử khai báo "libs": ["gsap","anime","lottie","three"]
-const LIBS = { gsap: 'gsap/dist/gsap.min.js', anime: 'animejs/lib/anime.min.js', lottie: 'lottie-web/build/player/lottie.min.js', three: 'three/build/three.min.js' };
+// + plugin GSAP (miễn phí từ 3.13): "splittext", "drawsvg", "morphsvg", "motionpath", "scrambletext", "text", "customease",
+//   "custombounce", "customwiggle", "easepack", "flip", "physics2d", "physicsprops" — tự nạp gsap trước và tự registerPlugin
+const GSAP_PLUGINS = { customease: ['CustomEase'], custombounce: ['CustomBounce'], customwiggle: ['CustomWiggle'], easepack: ['EasePack', 'ExpoScaleEase', 'RoughEase', 'SlowMo'],
+  splittext: ['SplitText'], drawsvg: ['DrawSVGPlugin'], morphsvg: ['MorphSVGPlugin'], motionpath: ['MotionPathPlugin'], scrambletext: ['ScrambleTextPlugin'], text: ['TextPlugin'],
+  flip: ['Flip'], physics2d: ['Physics2DPlugin'], physicsprops: ['PhysicsPropsPlugin'] };
+const LIBS = { gsap: 'gsap/dist/gsap.min.js', anime: 'animejs/lib/anime.min.js', lottie: 'lottie-web/build/player/lottie.min.js', three: 'three/build/three.min.js',
+  ...Object.fromEntries(Object.entries(GSAP_PLUGINS).map(([k, [g]]) => [k, 'gsap/dist/' + g + '.min.js'])) };
+const libKey = (n) => { const k = String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); return LIBS[k] ? k : LIBS[k.replace(/plugin$/, '')] ? k.replace(/plugin$/, '') : k === 'animejs' ? 'anime' : k === 'lottieweb' ? 'lottie' : k; };
 const libTag = (name) => { const f = LIBS[name] && path.join(path.dirname(new URL(import.meta.url).pathname), 'node_modules', LIBS[name]); return f && fs.existsSync(f) ? '<script src="file://' + f + '"></script>' : ''; };
+function libsFor(s) {
+  const want = new Set(s.elements.flatMap((e) => (Array.isArray(e.libs) ? e.libs : [])).map(libKey).filter((k) => LIBS[k]));
+  if (want.has('custombounce') || want.has('customwiggle')) want.add('customease');
+  const plugins = [...want].filter((k) => GSAP_PLUGINS[k]); if (plugins.length) want.add('gsap');
+  // thứ tự nạp: gsap → thư viện khác → CustomEase (CustomBounce / CustomWiggle cần nó) → các plugin còn lại
+  const rank = (k) => (k === 'gsap' ? 0 : !GSAP_PLUGINS[k] ? 1 : k === 'customease' ? 2 : 3);
+  const reg = plugins.length ? '<script>if(window.gsap)try{gsap.registerPlugin(...' + JSON.stringify(plugins.flatMap((k) => GSAP_PLUGINS[k])) + '.map((n)=>window[n]).filter(Boolean))}catch(e){}</script>' : '';
+  return [...want].sort((a, b) => rank(a) - rank(b)).map(libTag).join('') + reg;
+}
+// số ngẫu nhiên cố định theo seed của job + số thứ tự cảnh (Math.random trong html / thư viện) → dựng lại ra y hệt
+const seedTag = (n) => '<script>Math.random=(()=>{let a=' + (n >>> 0) + ';return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}})()</script>';
 // đồng hồ ảo: requestAnimationFrame / performance.now / Date.now chạy theo thời gian cảnh mà render.mjs tua tới
 // → GSAP, Anime.js, Lottie, Three.js… (mọi thứ chạy bằng rAF) khớp tuyệt đối từng khung, dù chụp chậm bao nhiêu
 const VCLOCK = '<script>(()=>{let now=0;const q=[];let id=0;const D0=Date.now();performance.now=()=>now;Date.now=()=>D0+Math.round(now);'
@@ -236,8 +254,8 @@ function sceneDoc(s, head) {
     }
   });
   const bg = s['background-color'] || '#000000';
-  const libs = [...new Set(s.elements.flatMap((e) => (Array.isArray(e.libs) ? e.libs : [])))].map(libTag).join('');
-  return '<!doctype html><html><head><meta charset="utf-8">' + VCLOCK + libs + head
+  const libs = libsFor(s); const seed = Math.floor(rng(CR.seed + ':r' + scenes.indexOf(s))() * 4294967296);
+  return '<!doctype html><html><head><meta charset="utf-8">' + VCLOCK + seedTag(seed) + libs + head
     + '<style>html,body{margin:0;padding:0;width:' + W + 'px;height:' + H + 'px;overflow:hidden;background:' + bg + '}#stage{position:relative;isolation:isolate;z-index:0;width:' + W + 'px;height:' + H + 'px;overflow:hidden;background:' + bg + '}'
     + '#cam{position:absolute;left:0;top:0;width:' + W + 'px;height:' + H + 'px;isolation:isolate;transform-origin:center center}</style></head><body>'
     + '<svg width="0" height="0" style="position:absolute"><filter id="mb" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feGaussianBlur id="mbg" stdDeviation="0" edgeMode="duplicate"/></filter></svg>'

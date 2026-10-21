@@ -43,6 +43,11 @@ Quy trình: kịch bản (hook ≤ 3s → nội dung → CTA) → chia cảnh 2�
 ES.onSeek.push((t) => tl.seek(t - 1.2)); /* t = giây của cảnh; 1.2 = start của phần tử */</script>
 ```
 
+- **Plugin GSAP** (miễn phí từ 3.13, đang dùng 3.15): thêm tên vào `libs` — `splittext`, `scrambletext`, `text`, `drawsvg`, `morphsvg`, `motionpath`, `customease`, `custombounce`, `customwiggle`, `easepack`, `flip`, `physics2d`, `physicsprops`. render tự nạp `gsap` trước và tự `registerPlugin`; **không** dùng CDN, **không** dùng ScrollTrigger / ScrollSmoother / Draggable / Observer (không có cuộn / chuột khi dựng).
+  - SplitText đo chữ → tách sau khi font tải xong: `document.fonts.ready.then(() => { const sp = SplitText.create('#t', { type: 'chars,words' }); tl.from(sp.chars, {…}); tl.seek(ES.time); })`.
+  - Luôn dùng timeline `paused: true` + `ES.onSeek.push((t) => tl.seek(t - start))` cho animation quan trọng; `setTimeout` / `setInterval` không chạy theo đồng hồ ảo.
+  - `Math.random()` (và `gsap.utils.random`, `'random(-40,40)'`) cố định theo seed của job + số cảnh → dựng lại ra cùng một video.
+  - Nguyên tắc GSAP / chuyển động chi tiết: skill `gsap-core`, `gsap-timeline`, `gsap-plugins`, `gsap-utils`, `gsap-performance`, `motion-design` (chỉ animate `transform` / `opacity` khi được, ease `power2–4.out` cho vào, `.in` cho ra, stagger 0.03–0.08s).
 - Lottie: `lottie.loadAnimation({ container, renderer: 'svg', autoplay: true, animationData })`. Three.js: vòng `requestAnimationFrame` bình thường, dùng `performance.now()/1000` làm thời gian; WebGL chạy SwiftShader (CPU) nên giữ cảnh nhẹ (≤ vài nghìn tam giác, canvas ≤ 1080px).
 - SFX: dùng file âm thanh của mình (`audio` + comment `sfx <loại> peakAt=<giây>`).
 
