@@ -2,14 +2,16 @@ name: render
 
 # n8n (ES · 2) đẩy file jobs/<id>.json lên repo → workflow này dựng video → đưa MP4 lên Release
 # → ghi results/<id>.json (status, url, duration) để n8n đọc rồi đăng bài.
+# Dự án HyperFrames: đẩy cả thư mục jobs/<id>/ (có index.html, tạo bằng `npx hyperframes init`) → dựng bằng hf.mjs,
+# thư mục được giữ lại để sửa tiếp và đẩy lại.
 on:
   push:
     branches: [main]
-    paths: ['jobs/**.json']
+    paths: ['jobs/**']
   workflow_dispatch:
     inputs:
       job:
-        description: 'Đường dẫn job, vd jobs/ES-031-20261019.json'
+        description: 'Đường dẫn job, vd jobs/ES-031-20261019.json hoặc thư mục HyperFrames jobs/intro-01'
         required: true
 
 permissions:
@@ -32,53 +34,67 @@ jobs:
         id: find
         run: |
           if [ -n "${{ github.event.inputs.job }}" ]; then
-            LIST="${{ github.event.inputs.job }}"
+            IN="${{ github.event.inputs.job }}"; IN="${IN%/}"
+            if [ -d "$IN" ]; then LIST=""; HF="$IN"; else LIST="$IN"; HF=""; fi
           else
-            LIST=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- 'jobs/*.json' | tr '\n' ' ')
+            # job ES: jobs/<id>.json ngay trong jobs/ (không lấy hyperframes.json, package.json… trong thư mục dự án)
+            LIST=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- jobs | grep -E '^jobs/[^/]+\.json$' | tr '\n' ' ') || true # bash -eo pipefail: grep không thấy gì không được làm hỏng bước
+            # dự án HyperFrames: thư mục jobs/<id>/ có file đổi và có index.html
+            HF=$(git diff --name-only --diff-filter=AMR HEAD~1 HEAD -- jobs | grep -E '^jobs/[^/]+/' | cut -d/ -f1-2 | sort -u | while read -r d; do [ -f "$d/index.html" ] && echo "$d"; done | tr '\n' ' ') || true
           fi
           echo "list=$LIST" >> "$GITHUB_OUTPUT"
-          echo "Jobs: $LIST"
+          echo "hf=$HF" >> "$GITHUB_OUTPUT"
+          echo "any=$([ -n "$LIST$HF" ] && echo 1)" >> "$GITHUB_OUTPUT"
+          echo "Jobs: $LIST | HyperFrames: $HF"
 
       - uses: actions/setup-node@v4
-        if: steps.find.outputs.list != ''
+        if: steps.find.outputs.any == '1'
         with:
-          node-version: 20
+          node-version: 22
 
       - uses: actions/setup-python@v5
-        if: steps.find.outputs.list != ''
+        if: steps.find.outputs.any == '1'
         with:
           python-version: '3.12'
 
       - name: Cài công cụ (ffmpeg, Chromium, edge-tts)
-        if: steps.find.outputs.list != ''
+        if: steps.find.outputs.any == '1'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-noto-color-emoji fonts-noto-core > /dev/null
           pip install -q edge-tts==7.3.1
           npm install --no-audit --no-fund
           npx playwright install --with-deps chromium
+          if [ -n "${{ steps.find.outputs.hf }}" ]; then npx -y hyperframes@0.8.181 telemetry disable > /dev/null 2>&1 || true; fi
 
       - name: Dựng video
-        if: steps.find.outputs.list != ''
+        if: steps.find.outputs.any == '1'
         env:
           RENDER_CONCURRENCY: "3"
         run: |
           mkdir -p out
           for j in ${{ steps.find.outputs.list }}; do
             echo "::group::$j"
-            node render.mjs "$j" out || echo "render lỗi: $j"
+            id=$(basename "$j" .json)
+            node render.mjs "$j" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $j"
+            echo "::endgroup::"
+          done
+          for d in ${{ steps.find.outputs.hf }}; do
+            echo "::group::HyperFrames $d"
+            id=$(basename "$d")
+            node hf.mjs "$d" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $d"
             echo "::endgroup::"
           done
 
       - name: Đưa video lên Release + ghi kết quả
-        if: always() && steps.find.outputs.list != ''
+        if: always() && steps.find.outputs.any == '1'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="videos-$(date -u +%Y-%m)"
           gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "Video ETHAN STUDIO dựng tự động" > /dev/null
           mkdir -p results
-          for j in ${{ steps.find.outputs.list }}; do
+          for j in ${{ steps.find.outputs.list }} ${{ steps.find.outputs.hf }}; do
             id=$(basename "$j" .json)
             r="out/$id.result.json"
             if [ ! -f "$r" ]; then echo "{\"id\":\"$id\",\"status\":\"error\",\"message\":\"render không tạo kết quả (xem log Actions)\"}" > "$r"; fi
@@ -89,10 +105,10 @@ jobs:
             else
               jq --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '. + {run: $run}' "$r" > "results/$id.json"
             fi
-            git rm -q --cached "$j" 2>/dev/null || true; rm -f "$j"
+            if [ -f "$j" ]; then git rm -q --cached "$j" 2>/dev/null || true; rm -f "$j"; fi # thư mục HyperFrames giữ lại
           done
           git config user.name "es-render-bot"
           git config user.email "es-render-bot@users.noreply.github.com"
-          git add -A results jobs
+          git add -A results; git add -u jobs # không thêm file tạm HyperFrames sinh ra trong thư mục dự án
           git commit -q -m "render: kết quả [skip ci]" || exit 0
           for i in 1 2 3 4 5; do git pull -q --rebase && git push -q && break; sleep 5; done

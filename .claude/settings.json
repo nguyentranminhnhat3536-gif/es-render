@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "extraKnownMarketplaces": {
+    "hyperframes": {
+      "source": { "source": "github", "repo": "heygen-com/hyperframes" }
+    }
+  },
+  "enabledPlugins": {
+    "hyperframes@hyperframes": true
+  }
+}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0b0510; }
+      #root { position: relative; width: 100%; height: 100%; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #fff; }
+      #title { position: absolute; left: 90px; top: 760px; width: 900px; font-size: 104px; font-weight: 800; line-height: 1.05; }
+      #sub { position: absolute; left: 90px; top: 1040px; font-size: 44px; color: #ff8cc6; }
+      #bar { position: absolute; left: 90px; top: 1140px; width: 900px; height: 18px; border-radius: 9px; background: #ff8cc6; transform-origin: left center; }
+    </style>
+  </head>
+  <body>
+    <!-- Mỗi phần tử: class="clip" + data-start / data-duration (giây) + data-track-index (lớp). Timeline GSAP phải paused và đăng ký vào window.__timelines -->
+    <div id="root" data-composition-id="main" data-start="0" data-duration="5" data-width="1080" data-height="1920">
+      <h1 id="title" class="clip" data-start="0" data-duration="5" data-track-index="0">Xin chào từ HyperFrames</h1>
+      <p id="sub" class="clip" data-start="0" data-duration="5" data-track-index="1">ETHAN STUDIO · es-render</p>
+      <div id="bar" class="clip" data-start="0" data-duration="5" data-track-index="2"></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.from("#title", { y: 120, opacity: 0, duration: 0.8, ease: "power3.out" }, 0.2)
+        .from("#sub", { x: -60, opacity: 0, duration: 0.6, ease: "power2.out" }, 0.7)
+        .from("#bar", { scaleX: 0, duration: 2.6, ease: "power2.inOut" }, 0.9)
+        .to("#title", { scale: 1.04, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: 1 }, 2.4);
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
