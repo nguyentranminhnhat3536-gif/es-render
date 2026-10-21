@@ -1,6 +1,6 @@
 ---
 name: es-video
-description: Make a video with this repo (es-render) from a plain request — "làm video 60s giới thiệu X", motion graphics, explainer, product promo, kinetic typography, list/tutorial video with AI voice and captions. Use whenever the user asks for a video, a scene, or an animation to export as MP4, or a render job in this repo.
+description: Make a video with this repo (es-render) from a plain request — "làm video 60s giới thiệu X", motion graphics, explainer, product promo, kinetic typography, list/tutorial video with AI voice and captions. Use whenever the user asks for a video, a scene, or an animation to export as MP4, or a render job in this repo. Default for every video in this repo (n8n jobs, AI voice + captions, HyperFrames projects); hand off to the fframes-video skill only when the user names fframes/Rust or a jobs/<name>/ folder has a Cargo.toml.
 ---
 
 # es-video — studio dựng video bằng code
@@ -54,6 +54,10 @@ ES.onSeek.push((t) => tl.seek(t - 1.2)); /* t = giây của cảnh; 1.2 = start 
 ### Dự án HyperFrames (tuỳ chọn)
 
 Khi người dùng muốn **xem trực tiếp lúc sửa** hoặc tự làm trên máy bằng HyperFrames: tạo dự án `npx hyperframes init <tên> --resolution portrait`, xem bằng `npx hyperframes preview` (studio `localhost:3002`, tự tải lại), dựng bằng `node hf.mjs <thư mục> out`. Đẩy thư mục vào `jobs/<tên>/` (có `index.html`) → Actions dựng lên Release như job JSON. Composition: `data-composition-id` / `data-start` / `data-duration` / `data-track-index`, phần tử `class="clip"`, timeline GSAP `paused` đăng ký `window.__timelines["main"]`. Chi tiết: `npx hyperframes docs` hoặc plugin HyperFrames (khai báo trong `.claude/settings.json`). Job tự động (n8n) vẫn dùng movie JSON ở trên.
+
+### Chọn công cụ: movie JSON, HyperFrames hay fframes
+
+Mặc định — job từ n8n, video có giọng đọc AI + phụ đề karaoke, cảnh HTML/GSAP, ảnh/video nguồn — dùng **movie JSON + `render.mjs`**. Người dùng muốn **xem trực tiếp khi sửa** bằng HTML trên máy → **HyperFrames** (`hf.mjs`). Người dùng nhắc fframes/Rust, hoặc thư mục `jobs/<tên>/` có `Cargo.toml` → **dự án fframes** (motion graphics thuần code chính xác từng khung, dựng lại y hệt — logo động, đồ thị, chữ động, thẻ số liệu, intro/outro — thì có thể *gợi ý* fframes, nhưng hỏi trước): làm theo skill `fframes-video`, tạo bằng `cargo fframes new <tên> --format portrait --yes` (9:16) hay `--format landscape` (16:9), dựng bằng `node ff.mjs <thư mục> out`, đẩy thư mục vào `jobs/<tên>/` (có `Cargo.toml`) để Actions dựng; mẫu `examples/fframes-hello` (feature `landscape` + `FF_FORMAT` để chọn khổ lúc dựng). fframes không có TTS/phụ đề tự động: giọng đọc phải là file trong `media/`, và lần build đầu trên Actions mất ~15–25 phút (sau đó có cache).
 
 ## 2. Luôn kiểm tra trước khi giao
 

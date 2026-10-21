@@ -1,0 +1,8 @@
+fframes-video skill — vendored verbatim, do not edit (update by copying again).
+
+Upstream:  https://github.com/dmtrKovalenko/fframes  (skills/fframes-video)
+Commit:    69174f0187b5d8e92329246898f70250b59f08f2 (2026-10-20, "chore: release 1.3.0", fframes 1.3.0)
+Author:    Dmitriy Kovalenko — MIT License (see LICENSE, copied from upstream LICENSE.txt)
+Installed: same files as `npx skills add https://fframes.studio` (fframes.studio serves skills/
+           under /.well-known/agent-skills, see upstream wrangler.jsonc + scripts/build-skills-index.mjs)
+Files:     SKILL.md, references/{3d,api,audio,design}.md
