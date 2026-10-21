@@ -388,7 +388,7 @@ async function renderScenes() {
       await page.goto('file://' + docPath, { waitUntil: 'load', timeout: 60000 }).catch(() => {});
       await page.evaluate(() => window.ready());
       s.file = path.join(work, 'seg' + String(s.i).padStart(3, '0') + '.mp4');
-      const ff = spawn(FFMPEG, ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(FPS), s.file], { stdio: ['pipe', 'inherit', 'inherit'] });
+      const ff = spawn(FFMPEG, ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-vf', TO709, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', ...TAG709, '-r', String(FPS), s.file], { stdio: ['pipe', 'inherit', 'inherit'] });
       const done = new Promise((res, rej) => ff.on('close', (c) => (c === 0 ? res() : rej(new Error('ffmpeg scene ' + s.i + ' exit ' + c)))));
       // khung hình không đổi (đoạn giữ hình) → dùng lại ảnh trước, đỡ chụp lại
       let prevSig = null; let prevBuf = null; let shots = 0;
@@ -412,6 +412,9 @@ async function renderScenes() {
   await browser.close();
 }
 
+// màu chuẩn BT.709 (video HD): ảnh chụp JPEG (BT.601) đổi ma trận màu + gắn nhãn, để điện thoại / web / TikTok hiện đúng màu
+const TO709 = 'scale=out_color_matrix=bt709:out_range=tv:flags=accurate_rnd+full_chroma_int,format=yuv420p';
+const TAG709 = ['-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv'];
 const LOOKS = {
   film: 'eq=contrast=1.05:saturation=1.06,vignette=angle=PI/5,noise=c0s=6:c0f=t+u',
   glow: 'split[g0][g1];[g1]gblur=sigma=28,format=gbrp[g2];[g0]format=gbrp[g3];[g3][g2]blend=all_mode=screen:all_opacity=0.22,format=yuv420p',
@@ -434,10 +437,11 @@ async function joinScenes(out, assFile, fontsDir) {
   // look màu toàn video (trước phụ đề để chữ vẫn sạch)
   const look = LOOKS[String(CR.look).toLowerCase()];
   if (look) { f += last + look + '[lk];'; last = '[lk]'; }
-  if (assFile) f += last + 'ass=' + path.basename(assFile) + ':fontsdir=' + path.relative(work, fontsDir) + '[vout]';
-  else f += last + 'null[vout]';
+  // phụ đề vẽ trên RGB (libass trộn màu trên YUV theo BT.601 → lệch màu chữ trong video BT.709)
+  if (assFile) { f += last + 'scale=in_color_matrix=bt709:in_range=tv:flags=accurate_rnd+full_chroma_int,format=rgb24,ass=' + path.basename(assFile) + ':fontsdir=' + path.relative(work, fontsDir) + '[sb];'; last = '[sb]'; }
+  f += last + TO709 + '[vout]'; // look đi qua RGB có thể trả về BT.601 → đưa về BT.709 lần cuối
   fs.writeFileSync(path.join(work, 'vf.txt'), f);
-  args.push('-filter_complex_script', 'vf.txt', '-map', '[vout]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-movflags', '+faststart', out);
+  args.push('-filter_complex_script', 'vf.txt', '-map', '[vout]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', ...TAG709, '-r', String(FPS), '-movflags', '+faststart', out);
   await run(FFMPEG, args, { cwd: work });
 }
 
@@ -484,7 +488,7 @@ function buildAss(st) {
   // từ khoá khớp cả dạng số nhiều / chia động từ (Outline → outlines, outlined)
   const kws = (st.keywords || []).map(norm).filter((k) => k.length > 2 && !STOP.has(k)); const isKw = (w) => { const n = norm(w.w); return kws.some((k) => n.startsWith(k) && /^(s|es|ed|d|ing)?$/.test(n.slice(k.length))); };
   const base = (w) => c(CR.on && isKw(w) ? KC : LC);
-  let out = '[Script Info]\nScriptType: v4.00+\nPlayResX: ' + W + '\nPlayResY: ' + H + '\nWrapStyle: 2\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\n'
+  let out = '[Script Info]\nScriptType: v4.00+\nPlayResX: ' + W + '\nPlayResY: ' + H + '\nWrapStyle: 2\nScaledBorderAndShadow: yes\nYCbCr Matrix: TV.709\n\n[V4+ Styles]\n'
     + 'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n'
     + 'Style: Cap,' + font + ',' + size + ',' + assColor(WC) + ',' + assColor(LC) + ',' + assColor(OC) + ',' + assColor(SC) + ',' + bold + ',0,0,0,100,100,0,0,1,' + outline + ',' + shadow + ',5,40,40,40,1\n'
     + 'Style: Box,' + font + ',' + size + ',' + assColor(LC) + ',' + assColor(LC) + ',' + assColor(BC) + ',&H00000000,' + bold + ',0,0,0,100,100,0,0,3,' + Math.round(size * 0.16) + ',0,5,40,40,40,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n';

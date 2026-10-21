@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// QA: kiểm tra video đã dựng trước khi giao — khung đen, đứng hình, không tiếng, sai kích thước/độ dài, độ to, im lặng dài.
+// QA: kiểm tra video đã dựng trước khi giao — khung đen, đứng hình, không tiếng, sai kích thước/độ dài, độ to, im lặng dài, chuẩn màu.
 //   node qa.mjs out/<id>.mp4 out/<id>.result.json   (ghi kết quả vào trường "qa" của result)
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,7 +12,7 @@ const run = (cmd, args) => new Promise((res, rej) => { const p = spawn(cmd, args
 function probe(file) {
   const j = JSON.parse(execFileSync(FFPROBE, ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', file]).toString());
   const v = (j.streams || []).find((s) => s.codec_type === 'video'); const a = (j.streams || []).find((s) => s.codec_type === 'audio');
-  return { dur: Number(j.format?.duration) || 0, w: Number(v?.width) || 0, h: Number(v?.height) || 0, hasVideo: !!v, hasAudio: !!a };
+  return { dur: Number(j.format?.duration) || 0, w: Number(v?.width) || 0, h: Number(v?.height) || 0, hasVideo: !!v, hasAudio: !!a, matrix: v?.color_space || '', pix: v?.pix_fmt || '' };
 }
 
 export async function check(file, { duration, width, height, speech = false } = {}) {
@@ -20,6 +20,8 @@ export async function check(file, { duration, width, height, speech = false } = 
   const p = probe(file);
   if (!p.hasVideo) return { pass: false, score: 0, issues: [{ level: 'error', msg: 'file không có hình' }] };
   if (!p.hasAudio) add('error', 'video không có âm thanh');
+  if (p.matrix && p.matrix !== 'bt709') add('warn', 'màu chưa theo chuẩn BT.709 (' + p.matrix + ') — điện thoại có thể hiện lệch màu');
+  if (p.pix && p.pix !== 'yuv420p') add('warn', 'định dạng điểm ảnh ' + p.pix + ' (mạng xã hội cần yuv420p)');
   if (width && height && (p.w !== width || p.h !== height)) add('error', 'sai kích thước khung: ' + p.w + 'x' + p.h + ' (cần ' + width + 'x' + height + ')');
   if (duration) { const d = Math.abs(p.dur - duration); if (d > 2) add('error', 'độ dài lệch ' + d.toFixed(1) + 's so với kế hoạch'); else if (d > 0.5) add('warn', 'độ dài lệch ' + d.toFixed(1) + 's'); }
   const err = await run(FFMPEG, ['-hide_banner', '-nostats', '-i', file, '-vf', 'scale=270:-2,blackdetect=d=0.4:pix_th=0.08,freezedetect=n=0.003:d=3',
