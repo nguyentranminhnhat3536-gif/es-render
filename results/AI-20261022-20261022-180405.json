@@ -1,0 +1,132 @@
+{
+  "id": "AI-20261022-20261022-180405",
+  "status": "done",
+  "duration": 113.867,
+  "width": 1080,
+  "height": 1920,
+  "file": "AI-20261022-20261022-180405.mp4",
+  "render_seconds": 861,
+  "creative": "bold",
+  "scenes": [
+    {
+      "t": 0,
+      "d": 4.867
+    },
+    {
+      "t": 4.567,
+      "d": 6.9,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 11.167,
+      "d": 7.3,
+      "trans": "hblur",
+      "td": 0.3
+    },
+    {
+      "t": 18.167,
+      "d": 6.933,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 24.8,
+      "d": 7.467,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 31.967,
+      "d": 6.367,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 38.033,
+      "d": 5.867,
+      "trans": "revealleft",
+      "td": 0.3
+    },
+    {
+      "t": 43.6,
+      "d": 6.967,
+      "trans": "smoothup",
+      "td": 0.3
+    },
+    {
+      "t": 50.267,
+      "d": 6.1,
+      "trans": "smoothleft",
+      "td": 0.3
+    },
+    {
+      "t": 56.067,
+      "d": 6.367,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 62.133,
+      "d": 7,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 68.833,
+      "d": 6.567,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 75.1,
+      "d": 5.3,
+      "trans": "whip",
+      "td": 0.3
+    },
+    {
+      "t": 80.1,
+      "d": 7.4,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 87.2,
+      "d": 5.9,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 92.8,
+      "d": 6.167,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 98.667,
+      "d": 7.1,
+      "trans": "smoothleft",
+      "td": 0.3
+    },
+    {
+      "t": 105.467,
+      "d": 3.233,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 108.5,
+      "d": 5.367,
+      "trans": "circleclose",
+      "td": 0.2
+    }
+  ],
+  "qa": {
+    "pass": true,
+    "score": 10,
+    "lufs": -14.3,
+    "issues": []
+  },
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/AI-20261022-20261022-180405.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/39767799968"
+}
