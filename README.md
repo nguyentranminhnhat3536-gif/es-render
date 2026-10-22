@@ -78,3 +78,27 @@ Xem lại một dự án đã đẩy lên GitHub mà không clone cả repo: `np
 Dựng thử trên máy: `node hf.mjs examples/hyperframes-hello out` → `out/hyperframes-hello.mp4`.
 
 `.claude/settings.json` khai báo sẵn plugin HyperFrames: mở repo này bằng Claude Code trên máy (và tin cậy thư mục) là có skill HyperFrames. Job tự động từ n8n vẫn dùng movie JSON + `render.mjs` như cũ.
+
+## Dự án fframes (Rust)
+
+[fframes](https://github.com/dmtrKovalenko/fframes) (Dmitriy Kovalenko, MIT) dựng video bằng code Rust: mỗi khung là một cây SVG (`svgr!`), chuyển động bằng `timeline!` và lò xo, âm thanh đặt bằng `AudioMap`, Skia vẽ (GPU Vulkan/Metal hoặc CPU), ffmpeg mã hoá. Hợp với motion graphics cần chính xác từng khung (logo động, đồ thị, chữ chạy, thẻ số liệu), dựng nhanh và lặp lại y hệt. Skill `.claude/skills/fframes-video` là bản chép nguyên văn của skill mà `npx skills add https://fframes.studio` cài (nguồn, commit và giấy phép ở `SOURCE`, `LICENSE`).
+
+### Làm trên máy
+
+1. Cài [Rust](https://rustup.rs) và thư viện: Ubuntu `sudo apt-get install -y yasm nasm pkg-config clang libclang-dev ninja-build libx264-dev libx265-dev libopus-dev libvpx-dev libasound2-dev` · macOS `brew install pkg-config ffmpeg x264 x265 opus nasm ninja`.
+   **Ubuntu 24.04** (x264 bản 164): chạy `export FFMPEG_FORCE_BUILD=1` trước mọi lệnh `cargo` (cả `cargo run -- preview`), vì FFmpeg dựng sẵn cần x264 bản 163 — thiếu biến này sẽ hỏng lúc liên kết với `undefined symbol: x264_encoder_open_163`. Lần build đầu lâu thêm ~12 phút. `ff.mjs` tự bật biến này.
+2. Tạo dự án: `cargo install --locked cargo-fframes` rồi `cargo fframes new video-cua-toi --format portrait --yes` (**9:16**, 1080×1920) hoặc `--format landscape` (**16:9**, 1920×1080).
+3. Mở Claude Code trong thư mục đó, nói *"Dùng skill fframes-video: …"*. Xem trực tiếp có tiếng: `cargo run --release -- preview` (máy có GPU); kiểm tra không cần xem: `strip`, `frame`, `inspect --pops`, `audio analyze`.
+4. Dựng giống trên GitHub: `node ff.mjs <thư mục> out` → `out/<tên>.mp4` + `out/<tên>.result.json`, rồi `node qa.mjs out/<tên>.mp4 out/<tên>.result.json`.
+
+### Dựng trên GitHub
+
+Đẩy cả thư mục vào `jobs/<tên>/` (có `Cargo.toml`, `src/`, `media/`, nên kèm `Cargo.lock`; **không** đẩy `target/`). Workflow `render` nhận thư mục có `Cargo.toml` mà không có `index.html` → `ff.mjs` (cargo build --release + lệnh `render -o` của chính dự án) → `qa.mjs` → MP4 lên Release, `results/<tên>.json` như job thường; thư mục được giữ lại để sửa và đẩy lại.
+
+- **Lần build đầu ~15–25 phút**: Actions chạy Ubuntu 24.04 có x264 bản 164, còn FFmpeg dựng sẵn của fframes 1.3.0 liên kết bản 163, nên `ff.mjs` tự bật `FFMPEG_FORCE_BUILD=1` và dựng FFmpeg từ mã nguồn (Skia vẫn tải bản dựng sẵn). Kết quả nằm trong cache Actions (`~/.cargo` + `~/ff-target`, khoá theo bản Ubuntu + bản Rust + `Cargo.lock`): các lần sau chỉ build lại phần của dự án (~1–2 phút) rồi render vài giây. Rust stable ra bản mới (~6 tuần/lần) hay image Ubuntu đổi thì lần chạy kế tiếp lại build từ đầu một lần (cargo build lại mọi crate khi rustc đổi) rồi lưu cache mới.
+- **Không có GPU**: Skia chạy Vulkan bằng lavapipe (`mesa-vulkan-drivers`, CPU). Mẫu 165 khung 1080×1920 dựng trong ~6–11 s trên 4 nhân. Dự án gọi `.renderers(SkiaRenderers::gpu(..))` như mẫu thì lỗi Vulkan sẽ tự dựng lại bằng `--renderer skia-cpu`, rồi `cpu`.
+- **Khổ 9:16 hay 16:9**: chọn lúc tạo bằng `--format portrait|landscape`. Muốn đổi lúc dựng thì khai báo feature như `examples/fframes-hello` (`landscape = []`, `WIDTH`/`HEIGHT` theo `cfg!(feature = "landscape")`), rồi chạy tay workflow (**Actions → render → Run workflow**, `job: jobs/<tên>`, `format: landscape`) hoặc `FF_FORMAT=landscape node ff.mjs …` (nhận cả `9:16` / `16:9`). Dự án không có feature đó mà video ra khổ khác thì vẫn `done` nhưng `results/<tên>.json` có `format_ignored` để n8n/bot báo lại.
+- Biến môi trường của `ff.mjs`: `FF_FORMAT`, `FF_FEATURES`, `FF_RENDERER` (`gpu` · `skia-cpu` · `cpu`), `FF_TIMEOUT` (render, mặc định 1800 s), `FF_BUILD_TIMEOUT` (3600 s), `CARGO_TARGET_DIR` (mặc định `~/.cache/es-fframes-target`, dùng chung mọi dự án), `FFMPEG_FORCE_BUILD`.
+- QA: đặt `color_matrix: fframes::pix_fmt::YuvMatrix::Bt709` trong `EncoderOptions` (như mẫu) để không bị cảnh báo màu; video không có tiếng bị tính lỗi.
+
+Mẫu: `examples/fframes-hello/` — khung 9:16 tự vẽ, nút chọn trượt sang 16:9 thì khung đổi dạng theo, *"Dọc hay ngang, bạn chọn."*, 5,5 s, tiếng sinh bằng code. Dựng thử: `node ff.mjs examples/fframes-hello out` (thêm `FF_FORMAT=landscape` cho bản 16:9).

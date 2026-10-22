@@ -58,6 +58,10 @@ function run(cmd, args, opts = {}) {
   });
 }
 const probeDur = (f) => num(execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString().trim(), 0);
+// màu video nguồn: { codec_name, width, height, color_space, color_transfer, color_primaries } (lỗi → {})
+const probeColor = (f) => { try { return Object.fromEntries(execFileSync(FFPROBE, ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,width,height,color_space,color_transfer,color_primaries', '-of', 'default=nw=1', f]).toString().trim().split('\n').map((l) => l.split('='))); } catch (e) { return {}; } };
+// tone map HDR cần zscale (libzimg, có sẵn trong ffmpeg apt của Ubuntu); bản ffmpeg thiếu → bỏ tone map (màu nhạt) thay vì hỏng cả job
+let zs; const hasZscale = () => { if (zs === undefined) { try { zs = /\bzscale\b/.test(execFileSync(FFMPEG, ['-hide_banner', '-filters']).toString()); } catch (e) { zs = false; } if (!zs) log('ffmpeg thiếu zscale → video HDR/BT.2020 không được tone map'); } return zs; };
 
 async function download(url, dest, tries = 4) {
   for (let i = 0; i < tries; i++) {
@@ -380,10 +384,18 @@ async function localizeVideos() {
     e.width = w; e.height = h; const st = num(e.start, 0); const dur = num(e.duration, -1) > 0 ? num(e.duration) : s.D - st;
     const dir = path.join(work, 'vf' + k++); fs.mkdirSync(dir, { recursive: true });
     const sz = w + ':' + h; const fit = String(e.fit || 'cover');
+    const still = /\.(png|jpe?g|webp|gif|bmp)$/i.test(src); // ảnh → lặp thành video tĩnh (vẫn được fit cover/blur + keyframes)
+    // HDR (iPhone HLG / Dolby Vision, PQ) và gam BT.2020 → tuyến tính, đổi gam BT.709, tone map mobius (trắng tham chiếu 203 nit ≈ 90% trắng SDR, chừa chỗ cho vùng sáng tới 1000 nit) → hết xám bệt, tối
+    const c = still ? {} : probeColor(src); const ok = (v) => v && v !== 'unknown'; const hdr = /^(smpte2084|arib-std-b67)$/.test(c.color_transfer || ''); const wide = (hdr || c.color_primaries === 'bt2020') && hasZscale();
+    const tm = !wide ? '' : ',zscale=t=linear:npl=203:p=709' + (ok(c.color_transfer) ? '' : ':tin=709') + (ok(c.color_primaries) ? '' : ':pin=2020') + (ok(c.color_space) ? '' : ':min=2020_ncl')
+      + ',format=gbrpf32le' + (hdr ? ',tonemap=mobius:param=0.6:desat=0:peak=' + r3(1000 / 203) : '') + ',zscale=t=709:m=709:r=tv,format=yuv420p';
+    // Chrome đọc khung JPEG theo BT.601 full range → đổi ma trận nguồn sang BT.601 (giữ BT.709 thì lệch màu ~22/255); chưa gắn nhãn: HD coi là BT.709, SD là BT.601
+    // — trừ VP8/VP9 (webm quay màn hình / webcam bằng trình duyệt): không gắn nhãn mà vẫn là BT.601
+    const inM = wide ? 'bt709' : ok(c.color_space) ? 'auto' : /^vp[89]$/.test(c.codec_name || '') ? 'bt601' : num(c.width) >= 1280 || num(c.height) > 576 ? 'bt709' : 'bt601';
     const vf = 'fps=' + FPS + ',' + (fit === 'contain' ? 'scale=' + sz + ':force_original_aspect_ratio=decrease,pad=' + sz + ':(ow-iw)/2:(oh-ih)/2:color=black'
       : fit === 'blur' ? 'split[a][b];[a]scale=' + sz + ':force_original_aspect_ratio=increase,crop=' + sz + ',boxblur=28:2,eq=brightness=-0.06[bg];[b]scale=' + sz + ':force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2'
-        : 'scale=' + sz + ':force_original_aspect_ratio=increase,crop=' + sz) + (e.flip ? ',hflip' : '') + ',format=yuvj420p';
-    const still = /\.(png|jpe?g|webp|gif|bmp)$/i.test(src); // ảnh → lặp thành video tĩnh (vẫn được fit cover/blur + keyframes)
+        : 'scale=' + sz + ':force_original_aspect_ratio=increase,crop=' + sz) + (e.flip ? ',hflip' : '') + tm
+      + ',scale=in_color_matrix=' + inM + ':out_color_matrix=bt601:out_range=pc,format=yuvj420p';
     await run(FFMPEG, ['-y', '-v', 'error', ...(still ? ['-loop', '1'] : ['-ss', String(r3(Math.max(0, num(e.seek, 0))))]), '-i', src, '-t', String(r3(dur + 2 / FPS)), '-vf', vf, '-q:v', '3', '-frames:v', String(Math.ceil(dur * FPS) + 1), path.join(dir, '%05d.jpg')]);
     const n = fs.readdirSync(dir).length; if (!n) throw new Error('video không có khung hình: ' + e.src);
     e._vf = { dir, n };
