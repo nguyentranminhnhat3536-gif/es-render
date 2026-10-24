@@ -1,0 +1,96 @@
+{
+  "id": "AI-20261024-20261024-180113",
+  "status": "done",
+  "duration": 105.867,
+  "width": 1080,
+  "height": 1920,
+  "file": "AI-20261024-20261024-180113.mp4",
+  "render_seconds": 680,
+  "creative": "bold",
+  "scenes": [
+    {
+      "t": 0,
+      "d": 7.533
+    },
+    {
+      "t": 7.233,
+      "d": 8.233,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 15.167,
+      "d": 9.567,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 24.433,
+      "d": 9.833,
+      "trans": "zoom",
+      "td": 0.3
+    },
+    {
+      "t": 33.967,
+      "d": 7.567,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 41.233,
+      "d": 9.667,
+      "trans": "whip-up",
+      "td": 0.3
+    },
+    {
+      "t": 50.6,
+      "d": 7.167,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 57.467,
+      "d": 11.033,
+      "trans": "smoothup",
+      "td": 0.3
+    },
+    {
+      "t": 68.2,
+      "d": 9.133,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 77.033,
+      "d": 9.333,
+      "trans": "smoothup",
+      "td": 0.3
+    },
+    {
+      "t": 86.067,
+      "d": 9.033,
+      "trans": "revealleft",
+      "td": 0.3
+    },
+    {
+      "t": 94.8,
+      "d": 3.833,
+      "trans": "zoom",
+      "td": 0.3
+    },
+    {
+      "t": 98.433,
+      "d": 7.433,
+      "trans": "fadeblack",
+      "td": 0.2
+    }
+  ],
+  "qa": {
+    "pass": true,
+    "score": 10,
+    "lufs": -14.3,
+    "issues": []
+  },
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/AI-20261024-20261024-180113.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/40088208550"
+}
