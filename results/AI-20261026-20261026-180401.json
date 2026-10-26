@@ -1,0 +1,114 @@
+{
+  "id": "AI-20261026-20261026-180401",
+  "status": "done",
+  "duration": 145.4,
+  "width": 1080,
+  "height": 1920,
+  "file": "AI-20261026-20261026-180401.mp4",
+  "render_seconds": 970,
+  "creative": "bold",
+  "scenes": [
+    {
+      "t": 0,
+      "d": 6.8
+    },
+    {
+      "t": 6.5,
+      "d": 11.067,
+      "trans": "whip-up",
+      "td": 0.3
+    },
+    {
+      "t": 17.267,
+      "d": 9.5,
+      "trans": "whip",
+      "td": 0.3
+    },
+    {
+      "t": 26.467,
+      "d": 9.7,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 35.867,
+      "d": 9.7,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 45.267,
+      "d": 10.2,
+      "trans": "whip",
+      "td": 0.3
+    },
+    {
+      "t": 55.167,
+      "d": 10.367,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 65.233,
+      "d": 10.5,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 75.433,
+      "d": 10.567,
+      "trans": "coverleft",
+      "td": 0.3
+    },
+    {
+      "t": 85.7,
+      "d": 10.6,
+      "trans": "smoothup",
+      "td": 0.3
+    },
+    {
+      "t": 96,
+      "d": 9.033,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 104.733,
+      "d": 10.2,
+      "trans": "smoothup",
+      "td": 0.3
+    },
+    {
+      "t": 114.633,
+      "d": 9.9,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 124.233,
+      "d": 9.7,
+      "trans": "smoothleft",
+      "td": 0.3
+    },
+    {
+      "t": 133.633,
+      "d": 4.833,
+      "trans": "zoom",
+      "td": 0.3
+    },
+    {
+      "t": 138.267,
+      "d": 7.133,
+      "trans": "fadewhite",
+      "td": 0.2
+    }
+  ],
+  "qa": {
+    "pass": true,
+    "score": 10,
+    "lufs": -14.2,
+    "issues": []
+  },
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/AI-20261026-20261026-180401.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/40312243009"
+}
