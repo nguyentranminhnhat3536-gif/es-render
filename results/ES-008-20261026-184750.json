@@ -1,0 +1,107 @@
+{
+  "id": "ES-008-20261026-184750",
+  "status": "done",
+  "duration": 109.067,
+  "width": 1080,
+  "height": 1920,
+  "file": "ES-008-20261026-184750.mp4",
+  "render_seconds": 502,
+  "creative": "bold",
+  "scenes": [
+    {
+      "t": 0,
+      "d": 7.9
+    },
+    {
+      "t": 7.6,
+      "d": 9.167,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 16.467,
+      "d": 8.633,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 24.8,
+      "d": 7.767,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 32.267,
+      "d": 9.067,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 41.033,
+      "d": 8.267,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 49,
+      "d": 9.233,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 57.933,
+      "d": 8.133,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 65.767,
+      "d": 8.067,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 73.533,
+      "d": 8.067,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 81.3,
+      "d": 8.667,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 89.667,
+      "d": 7.767,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 97.133,
+      "d": 4.867,
+      "trans": "slideleft",
+      "td": 0.3
+    },
+    {
+      "t": 101.8,
+      "d": 7.267,
+      "trans": "fadewhite",
+      "td": 0.2
+    }
+  ],
+  "qa": {
+    "pass": true,
+    "score": 9,
+    "lufs": -14.2,
+    "issues": [
+      {
+        "level": "warn",
+        "msg": "đỉnh âm 3.8 dBFS, có thể vỡ tiếng"
+      }
+    ]
+  },
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-008-20261026-184750.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/40317732045"
+}
