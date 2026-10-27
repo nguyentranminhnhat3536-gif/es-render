@@ -1,0 +1,96 @@
+{
+  "id": "ES-009-20261027-184136",
+  "status": "done",
+  "duration": 114.3,
+  "width": 1080,
+  "height": 1920,
+  "file": "ES-009-20261027-184136.mp4",
+  "render_seconds": 1087,
+  "creative": "bold",
+  "scenes": [
+    {
+      "t": 0,
+      "d": 7
+    },
+    {
+      "t": 6.7,
+      "d": 8.667,
+      "trans": "zoom",
+      "td": 0.3
+    },
+    {
+      "t": 15.067,
+      "d": 8.667,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 23.433,
+      "d": 10.467,
+      "trans": "zoom",
+      "td": 0.3
+    },
+    {
+      "t": 33.6,
+      "d": 8.867,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 42.167,
+      "d": 10.967,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 52.833,
+      "d": 9.367,
+      "trans": "smoothleft",
+      "td": 0.3
+    },
+    {
+      "t": 61.9,
+      "d": 11.367,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 72.967,
+      "d": 9.733,
+      "trans": "revealleft",
+      "td": 0.3
+    },
+    {
+      "t": 82.4,
+      "d": 11.133,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 93.233,
+      "d": 8.233,
+      "trans": "revealleft",
+      "td": 0.3
+    },
+    {
+      "t": 101.167,
+      "d": 5.067,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 106.033,
+      "d": 8.267,
+      "trans": "fadewhite",
+      "td": 0.2
+    }
+  ],
+  "qa": {
+    "pass": true,
+    "score": 10,
+    "lufs": -14.3,
+    "issues": []
+  },
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-009-20261027-184136.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/40498054145"
+}
