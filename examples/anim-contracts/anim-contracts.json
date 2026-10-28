@@ -1,0 +1,41 @@
+{
+ "width": 1080,
+ "height": 1920,
+ "creative": "off",
+ "scenes": [
+  {
+   "comment": "s01 hook — ba trang của ba kiểu hợp đồng khác nhau trong một cảnh; \"contract\" cho es-render biết hàm nào để tua",
+   "background-color": "#101014",
+   "duration": 4,
+   "elements": [
+    {
+     "type": "anim",
+     "src": "seek.html",
+     "contract": "seek",
+     "x": 220,
+     "y": 0,
+     "width": 640,
+     "height": 640
+    },
+    {
+     "type": "anim",
+     "src": "render.html",
+     "contract": "render",
+     "x": 220,
+     "y": 640,
+     "width": 640,
+     "height": 640
+    },
+    {
+     "type": "anim",
+     "src": "renderframe.html",
+     "contract": "renderFrame",
+     "x": 220,
+     "y": 1280,
+     "width": 640,
+     "height": 640
+    }
+   ]
+  }
+ ]
+}

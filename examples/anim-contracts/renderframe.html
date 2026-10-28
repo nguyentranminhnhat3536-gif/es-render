@@ -1,0 +1,18 @@
+<!doctype html>
+<!-- hợp đồng "renderFrame": window.renderFrame(t, canvas, sub) + TIMELINE.duration + ASSETS_READY (kiểu kit của skill animate) -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#F3E9D2;overflow:hidden}canvas{position:absolute;inset:0;width:100%;height:100%}</style></head>
+<body><canvas width="1080" height="1080"></canvas>
+<script>
+window.TIMELINE = { duration: 4 };
+window.ASSETS_READY = new Promise((ok) => setTimeout(ok, 50)); // giả lập nạp tài nguyên
+window.renderFrame = (t, cv, sub) => {
+  const g = cv.getContext('2d'); g.fillStyle = '#F3E9D2'; g.fillRect(0, 0, 1080, 1080);
+  g.fillStyle = '#2B1B0E'; g.font = '800 64px sans-serif'; g.textAlign = 'center'; g.fillText('contract: "renderFrame"', 540, 140);
+  // giấy cắt: 5 lớp đồi trượt theo t, lệch "rung" theo khung 12 fps như hoạt hình tay
+  const k = Math.floor(t * 12); const cols = ['#E07A5F', '#F2CC8F', '#81B29A', '#3D405B', '#2A2D43'];
+  cols.forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.moveTo(0, 1080); const y0 = 420 + i * 120;
+    for (let x = 0; x <= 1080; x += 40) g.lineTo(x, y0 + Math.sin(x / (160 - i * 18) + t * (0.6 + i * 0.35)) * (50 - i * 6) + ((k * 7 + x) % 3)); g.lineTo(1080, 1080); g.fill(); });
+  g.fillStyle = '#FFFFFF'; g.beginPath(); g.arc(200 + 680 * (t / 4), 330 - Math.sin(t / 4 * Math.PI) * 120, 54, 0, Math.PI * 2); g.fill();
+};
+window.renderFrame(0, document.querySelector('canvas'), 0);
+</script></body></html>

@@ -30,6 +30,9 @@ jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      # bản HyperFrames mặc định (hf.mjs đọc HF_VERSION); dự án muốn bản khác: jobs/<id>/es-render.json { "hyperframes": "x.y.z" }
+      HF_VERSION: 0.8.181
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,9 +78,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-noto-color-emoji fonts-noto-core > /dev/null
           pip install -q edge-tts==7.3.1
-          npm install --no-audit --no-fund
+          # đúng phiên bản trong package-lock.json, không cài devDependencies
+          npm ci --omit=dev --no-audit --no-fund
           npx playwright install --with-deps chromium
-          if [ -n "${{ steps.find.outputs.hf }}" ]; then npx -y hyperframes@0.8.181 telemetry disable > /dev/null 2>&1 || true; fi
+          if [ -n "${{ steps.find.outputs.hf }}" ]; then npx -y "hyperframes@$HF_VERSION" telemetry disable > /dev/null 2>&1 || true; fi
+          # ghi lại máy dựng (chỉ log): ảnh Ubuntu + ffmpeg quyết định điểm ảnh của x264 / xfade
+          (. /etc/os-release && echo "runner: $PRETTY_NAME"); ffmpeg -version | head -1
 
       - name: Dựng video
         if: steps.find.outputs.web == '1'

@@ -48,8 +48,21 @@ ES.onSeek.push((t) => tl.seek(t - 1.2)); /* t = giây của cảnh; 1.2 = start 
   - Luôn dùng timeline `paused: true` + `ES.onSeek.push((t) => tl.seek(t - start))` cho animation quan trọng; `setTimeout` / `setInterval` không chạy theo đồng hồ ảo.
   - `Math.random()` (và `gsap.utils.random`, `'random(-40,40)'`) cố định theo seed của job + số cảnh → dựng lại ra cùng một video.
   - Nguyên tắc GSAP / chuyển động chi tiết: skill `gsap-core`, `gsap-timeline`, `gsap-plugins`, `gsap-utils`, `gsap-performance`, `motion-design` (chỉ animate `transform` / `opacity` khi được, ease `power2–4.out` cho vào, `.in` cho ra, stagger 0.03–0.08s).
+- **Thư viện mới** (chỉ nạp khi xin): `"libs": ["anime4"]` (anime.js v4 ở `window.anime4`, v3 vẫn là `anime`), `["motion"]` (Motion vanilla, `ES.motion(Motion.animate(…), start)`),
+  `["dotlottie"]` / `["rive"]` (runtime cho code tự viết; thường dùng phần tử `dotlottie` / `rive` bên dưới). Cách viết + lỗi hay gặp: `references/new-libs.md`.
+  Không WAAPI (`el.animate`, `anime4.waapi`), không Worker / OffscreenCanvas, không CDN, không giờ thật: mọi chuyển động là hàm của `t` trong `ES.onSeek`.
 - Lottie: `lottie.loadAnimation({ container, renderer: 'svg', autoplay: true, animationData })`. Three.js: vòng `requestAnimationFrame` bình thường, dùng `performance.now()/1000` làm thời gian; WebGL chạy SwiftShader (CPU) nên giữ cảnh nhẹ (≤ vài nghìn tam giác, canvas ≤ 1080px).
 - SFX: dùng file âm thanh của mình (`audio` + comment `sfx <loại> peakAt=<giây>`).
+
+### Phần tử dotlottie / rive (rive: thử nghiệm — lỗi vẽ báo `E_RIVE_DRAW`, xem `references/new-libs.md`)
+
+- `{ "type": "dotlottie", "src": "<id>/logo.lottie", "theme": "dark", "slots": { "bg_color": "#E50914" }, "segment": [0, 90], "loop": true, "speed": 1, "fit": "contain" }`
+  — file `.lottie` (theme, slot đổi màu thương hiệu, nhiều animation: `animation-id`) hoặc Lottie `.json`. JSON Lottie thường đang dùng `libs: ["lottie"]` thì cứ giữ (hai engine vẽ hơi khác nhau).
+- `{ "type": "rive", "src": "<id>/mascot.riv", "state-machine": "State Machine 1", "inputs": [ { "time": 1.2, "name": "wave", "value": true }, { "time": 3, "name": "jump", "value": "fire" } ], "fit": "contain", "alignment": "center" }`
+  — hoặc `"animation": "<tên timeline>"`. Bước cố định 60 Hz theo đồng hồ ảo (30 hay 60 fps ra cùng tư thế), `time` của input tính bằng giây phần tử (trước `speed`).
+  `.riv` có ảnh nhúng / tài nguyên ngoài → `E_RIVE_UNSUPPORTED` (xuất lại chỉ vector + font nhúng); âm thanh trong `.riv` bị bỏ (dùng `audio`).
+- Chung với `html`: `x y width height start duration fade-in fade-out z-index keyframes animation`, `"on-error": "hide"`, `"timeout"` (s). File ≤ 8 MB, cả job ≤ 24 MB;
+  đặt cạnh job (`jobs/<id>/…`). Mẫu: `examples/dotlottie-hello/`, `examples/rive-hello/`. File `.riv` / `.lottie` có giấy phép riêng — chỉ dùng file mình có quyền.
 
 ### Trang anim.seek (motion2code) làm cảnh / lớp phủ
 
@@ -62,11 +75,38 @@ Trang HTML theo hợp đồng motion2code (`window.anim = { duration, seek(t) }`
 - Thời gian: giây của animation = `seek + (giây cảnh − start) × speed`, `loop: true` quay vòng theo `anim.duration` (mẫu motion2code liền mạch). `loop: false` chạy một lần rồi đứng ở `until` (giây của animation, mặc định hết animation — với trang motion2code khung cuối **chính là khung mở đầu**, nên muốn dừng ở cao trào thì đặt `"until": 3.2`). Không có tiếng. Cảnh không có `duration` thì dài bằng một vòng của trang (hoặc tới `until`).
 - render chờ trang sẵn sàng (≤ `timeout`, mặc định 20 s: `data-ready`, mọi font khai báo, ảnh — font tới sau hạn đó sẽ đổi giữa cảnh, có cảnh báo `W_FONTS` / `W_FONT_SWAPPED_MID_RENDER`: tăng `timeout`) rồi mới chụp khung đầu; trang hỏng hợp đồng hoặc treo → job lỗi kèm tên cảnh/phần tử/lý do (báo trước khi đọc giọng), hoặc `"on-error": "hide"` để bỏ phần tử và ghi cảnh báo trong `result.anims` (hỏng ở lần chạy thử trước TTS → bỏ ở mọi cảnh; hỏng lúc dựng một cảnh → chỉ bỏ ở cảnh đó, các cảnh khác tự chạy cổng chờ riêng). Chỉ đặt phần tử `anim` trong `scenes[].elements`.
 - Trong trang: GSAP CDN được thay bằng bản 3.15 trong `node_modules` (`result.anims[].gsap` ghi cả hai bản), `requestAnimationFrame`/`Date.now`/`new Date()`/`performance.now`/`Math.random` cố định theo đồng hồ của render, CSS animation và SVG `<animate>` cũng tua theo; `setTimeout`/`setInterval` chạy theo giờ thật tới cổng chờ (hẹn giờ đổi trang sau `data-ready` hoặc `setInterval` còn chạy → `W_BOOT_TIMERS`), sau đó bị bỏ qua (`W_TIMERS`); hàm `gsap.ticker.add` không theo tua (`W_TICKER`) — mọi chuyển động phải đi qua `anim.seek(t)`.
+- Trang của skill khác (không có `window.anim`): `"contract": "seek"` (`window.seek(t)` + `DURATION`/`DUR`/`data-duration` + `READY`), `"render"` (`window.render(t)`),
+  `"renderFrame"` (`window.renderFrame(t, canvas, 0)` + `TIMELINE.duration` + `ASSETS_READY`, kit của skill `animate`). Biến thời lượng phải nằm trên `window`
+  (`var DUR = 4`, không `const`). Mẫu: `examples/anim-contracts/`.
 - Trước khi đẩy: `python3 .claude/skills/motion2code/scripts/check_anim.py jobs/<id>/<tên>.html` (kiểm tra hợp đồng, 0,1 s). Ví dụ đầy đủ: `examples/anim-hello/` (`node render.mjs examples/anim-hello/anim-hello.json out`).
 
 ### Dự án HyperFrames (tuỳ chọn)
 
 Khi người dùng muốn **xem trực tiếp lúc sửa** hoặc tự làm trên máy bằng HyperFrames: tạo dự án `npx hyperframes init <tên> --resolution portrait`, xem bằng `npx hyperframes preview` (studio `localhost:3002`, tự tải lại), dựng bằng `node hf.mjs <thư mục> out`. Đẩy thư mục vào `jobs/<tên>/` (có `index.html`) → Actions dựng lên Release như job JSON. Composition: `data-composition-id` / `data-start` / `data-duration` / `data-track-index`, phần tử `class="clip"`, timeline GSAP `paused` đăng ký `window.__timelines["main"]`. Chi tiết: `npx hyperframes docs` hoặc plugin HyperFrames (khai báo trong `.claude/settings.json`). Job tự động (n8n) vẫn dùng movie JSON ở trên.
+Phiên bản dựng mặc định **0.8.181** (dự án cũ ra y hệt); dự án mới muốn bản mới hơn: `jobs/<tên>/es-render.json` `{ "hyperframes": "0.8.210" }`.
+Khối có sẵn: `npx hyperframes add <block>` (chép vào dự án nên dựng lại vẫn y hệt). `remotion-to-hyperframes` (skill của plugin) chuyển code Remotion sang HyperFrames
+mà không cần giấy phép Remotion. Phần media của HyperFrames: chỉ công cụ miễn phí, không gọi dịch vụ HeyGen trả phí.
+
+### Chọn công cụ nào
+
+| yêu cầu | công cụ |
+|---|---|
+| video từ prompt, kinetic type, list/tutorial, AI voice + phụ đề | movie JSON + `html` (GSAP) |
+| hoạt ảnh nhân vật / UI có state machine (`.riv`) | phần tử `rive` |
+| file `.lottie`, đổi màu thương hiệu bằng theme / slot | phần tử `dotlottie` (JSON Lottie thường: `libs: ["lottie"]`) |
+| code viết cho anime.js v4 / Motion | `libs: ["anime4"]` / `libs: ["motion"]` + `ES.onSeek` (`references/new-libs.md`) |
+| 3D đơn giản (logo xoay, khối) | `html` + `libs: ["three"]` (three 0.160, SwiftShader) |
+| phim ra mắt sản phẩm | skill `product-launch-motion` → `anim` (`"contract": "seek"`) hoặc dự án HF |
+| hiệu ứng / biểu đồ / mốc số liệu / explainer kiểu Vox / title 3D / ảnh bìa lặp | skill `motion-effects`, `animated-chart`, `milestone-reveal`, `vox-explainer`, `title-sequence-3d`, `loop-cover` → `anim` (`seek`) |
+| viết prompt motion từ brand / video tham khảo | `motion-prompt-writer`, `reference-to-motion` |
+| explainer minh hoạ (cắt giấy, riso, pixel, isometric…) | skill `animate` → `anim` (`"contract": "renderFrame"`) |
+| mô phỏng (bầy đàn, hạt, máy 3D bay xuyên) | skill `web-sims` → `anim` |
+| chọn phong cách hình | skill `film-styles` |
+| xem lại khung trước khi giao | skill `review-loop` + `qa.mjs` |
+| dựng lại video AI thành code | `motion2code` |
+| dự án HTML xem trực tiếp khi sửa | HyperFrames `jobs/<id>/index.html` |
+| dự án Remotion có sẵn | chưa dựng trong es-render — đọc ghi chú giấy phép Remotion trong README |
+| Rust / fframes | `fframes-video` |
 
 ### Chọn công cụ: movie JSON, HyperFrames hay fframes
 

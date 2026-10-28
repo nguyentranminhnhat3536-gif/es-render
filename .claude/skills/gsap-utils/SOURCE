@@ -1,0 +1,7 @@
+gsap-utils skill — official GSAP skill, vendored verbatim, do not edit (update by copying again).
+
+Upstream:  https://github.com/greensock/gsap-skills  (skills/gsap-utils)
+Commit:    aed9cfd3277740755f6bfc1155c7aa645403b760 (2026-04-21)
+Author:    GreenSock — MIT License (see LICENSE, copied from upstream LICENSE)
+Note:      the skill text is MIT; the GSAP library itself (node_modules/gsap) is under GreenSock's own "Standard" no-charge licence
+           (https://gsap.com/standard-license), not MIT.
