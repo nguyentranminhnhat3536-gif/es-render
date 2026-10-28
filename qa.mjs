@@ -89,8 +89,14 @@ export async function check(file, { duration, width, height, speech = false, sce
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [file, resFile] = process.argv.slice(2);
   const res = resFile && fs.existsSync(resFile) ? JSON.parse(fs.readFileSync(resFile, 'utf8')) : {};
-  check(file, { duration: res.duration, width: res.width, height: res.height, scenes: res.scenes, needAudio: res.engine !== 'hyperframes' }).then((q) => {
+  check(file, { duration: res.duration, width: res.width, height: res.height, scenes: res.scenes, needAudio: res.engine !== 'hyperframes' }).then(async (q) => {
     log('QA', path.basename(file), q.pass ? 'đạt' : 'LỖI', q.score + '/10', q.issues.map((i) => i.msg).join('; '));
-    if (resFile) fs.writeFileSync(resFile, JSON.stringify({ ...res, qa: q }, null, 1));
+    // chuẩn es-short/1 (qa-standard.mjs) cho job cũ: CHỈ BÁO (report_only), không đổi qa.pass / status; nạp động → file mới lỗi cũng không làm hỏng QA
+    // (job kind "spec" đã được spec/run.mjs chấm đầy đủ). QA_STANDARD=0 → bỏ qua.
+    let std = null;
+    if (res.kind !== 'spec' && process.env.QA_STANDARD !== '0') {
+      try { const m = await import('./qa-standard.mjs'); std = await m.standard(file, res, { outDir: path.dirname(file), report_only: true }); log('chuẩn es-short/1 (chỉ báo):', std.pass ? 'đạt' : 'chưa đạt ' + std.failed.join(',')); } catch (e) { log('chuẩn es-short/1 lỗi (bỏ qua):', String(e.message).slice(0, 160)); }
+    }
+    if (resFile) fs.writeFileSync(resFile, JSON.stringify({ ...res, qa: q, ...(std ? { standard: std } : {}) }, null, 1));
   }).catch((e) => { console.error('QA lỗi:', e.message); });
 }
