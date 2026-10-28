@@ -6,13 +6,18 @@
   "description": "Dựng video ETHAN STUDIO từ movie JSON (định dạng JSON2Video) bằng Chromium + ffmpeg, chạy trên GitHub Actions.",
   "scripts": {
     "render": "node render.mjs",
-    "test": "node --test --test-concurrency=1 test/anim/unit.test.mjs test/anim/page.test.mjs",
-    "test:render": "node --test --test-concurrency=1 test/anim/render.test.mjs test/anim/regress.test.mjs"
+    "test": "node --test --test-concurrency=1 test/anim/unit.test.mjs test/anim/page.test.mjs test/libs/unit.test.mjs test/libs/page.test.mjs test/libs/ready.test.mjs test/libs/3d-unit.test.mjs test/libs/3d.test.mjs",
+    "test:render": "node --test --test-concurrency=1 test/anim/render.test.mjs test/anim/regress.test.mjs test/libs/regress.test.mjs test/libs/opt.test.mjs test/libs/rive-stress.test.mjs",
+    "test:rm": "node --test --test-concurrency=1 test/rm/rm.test.mjs"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-web": "0.81.0",
+    "@rive-app/canvas-advanced-single": "2.48.0",
     "animejs": "3.2.2",
+    "animejs4": "npm:animejs@4.5.0",
     "gsap": "3.15.0",
     "lottie-web": "5.12.2",
+    "motion": "14.7.1",
     "playwright": "1.56.1",
     "three": "0.160.0"
   }

@@ -1,0 +1,13 @@
+{ "width": 1080, "height": 1920, "creative": "off",
+  "scenes": [
+    { "comment": "s01 hook — file .riv có state machine: Rive bước cố định 60 Hz theo đồng hồ ảo (30 hay 60 fps ra cùng tư thế)",
+      "background-color": "#0B0D14", "duration": 4,
+      "elements": [
+        { "type": "rive", "src": "data_binding_lists.riv", "state-machine": "State Machine 1", "x": 0, "y": 360, "width": 1080, "height": 1000, "fit": "contain" },
+        { "type": "html", "html": "<div style=\"font:800 76px/1.15 sans-serif;color:#E8ECFF;text-align:center;padding-top:150px\">Rive<br><span style=\"font-size:44px;opacity:.7\">.riv · state machine</span></div>",
+          "x": 0, "y": 0, "width": 1080, "height": 420, "animation": "rise" } ] },
+    { "comment": "s02 item — timeline của file thứ hai, tốc độ 1.5, căn trên",
+      "background-color": "#22242C", "duration": 3, "transition": { "style": "fade", "duration": 0.3 },
+      "elements": [
+        { "type": "rive", "src": "fallback_fonts_test.riv", "speed": 1.5, "alignment": "topCenter", "x": 40, "y": 520, "width": 1000, "height": 600, "fade-in": 0.3 },
+        { "type": "html", "html": "<div style=\"font:800 60px sans-serif;color:#F6EECD;text-align:center\">ES.onSeek → advance(1/60)</div>", "x": 0, "y": 1350, "width": 1080, "height": 120, "animation": "rise" } ] } ] }

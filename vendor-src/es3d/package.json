@@ -1,0 +1,21 @@
+{
+  "name": "es3d-build",
+  "private": true,
+  "type": "module",
+  "description": "Dựng vendor/es3d.min.js (R3F + drei + rapier + postprocessing, three 0.186.1). Chỉ cài ở thư mục nháp, không cài trong gốc es-render.",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node build.mjs --check"
+  },
+  "devDependencies": {
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
+    "@react-three/postprocessing": "3.2.2",
+    "@react-three/rapier": "2.2.0",
+    "esbuild": "0.28.2",
+    "postprocessing": "6.39.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "0.186.1"
+  }
+}

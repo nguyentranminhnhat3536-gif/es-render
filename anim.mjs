@@ -2,7 +2,11 @@
 // <html data-ready="1">, ?external=1 không tự chạy) vào cảnh của render.mjs, làm cả cảnh hoặc lớp phủ, tua đúng từng khung
 // theo đồng hồ của cảnh.
 //   { "type": "anim", "src": "<id>/<tên>.html", "start", "duration", "seek", "speed", "loop", "until", "x", "y", "width",
-//     "height", "fit": "contain"|"cover", "background": "page"|"transparent", "hide": ["#bg"], "timeout", "on-error": "fail"|"hide" }
+//     "height", "fit": "contain"|"cover", "background": "page"|"transparent", "hide": ["#bg"], "timeout", "on-error": "fail"|"hide",
+//     "contract": "anim"|"seek"|"render"|"renderFrame" }
+//   "contract" (mặc định "anim" = như trước): trang của skill khác không có window.anim → một shim nhỏ cuối bản sao trang dựng
+//   window.anim từ window.seek(t) / window.render(t) / window.renderFrame(t, canvas, 0) + DURATION|DUR|duration|TIMELINE.duration|data-duration
+//   + READY|ASSETS_READY (promise hoặc cờ). Trang đã có window.anim thì shim không đụng gì.
 //   "html": "<!doctype html>…" thay cho "src" (cả trang viết thẳng trong job; đường dẫn tương đối tính từ thư mục chứa file job JSON)
 // Mỗi phần tử là một <iframe> trỏ tới BẢN SAO của trang trong work/ (không bao giờ sửa trang gốc): đồng hồ ảo VCLOCK của
 // render.mjs chèn ngay sau doctype (mốc Date.now cố định, new Date() không đối số cũng theo đồng hồ ảo), Math.random theo seed
@@ -43,10 +47,11 @@ export function mapTime(lt, m) {
 
 // ---------- kiểm tra job (thuần) ----------
 const KNOWN = new Set(['type', 'src', 'html', 'start', 'duration', 'seek', 'speed', 'loop', 'until', 'x', 'y', 'width', 'height', 'fit', 'background',
-  'hide', 'z-index', 'fade-in', 'fade-out', 'keyframes', 'animation', 'rotate', 'zoom', 'timeout', 'on-error', 'comment', 'id']);
+  'hide', 'z-index', 'fade-in', 'fade-out', 'keyframes', 'animation', 'rotate', 'zoom', 'timeout', 'on-error', 'comment', 'id', 'contract']);
 const SOUND = new Set(['volume', 'muted', 'audio']);
 const REMOTE = /^(?!file:)(?:[a-z][a-z0-9+.-]+:|\/\/)/i; // http(s):, data:, //host… (một chữ cái + ":" là ổ đĩa Windows, không tính)
-const ENUMS = { fit: ['contain', 'cover'], background: ['page', 'transparent'], 'on-error': ['fail', 'hide'] };
+export const CONTRACTS = ['anim', 'seek', 'render', 'renderFrame'];
+const ENUMS = { fit: ['contain', 'cover'], background: ['page', 'transparent'], 'on-error': ['fail', 'hide'], contract: CONTRACTS };
 
 // e = phần tử anim; ctx = { W, H, stage?: [w,h] (cho W_ASPECT), dur?: anim.duration (cho until ≤ D, sau lần chạy thử) }
 // → { errors: [{code,msg}], warnings: [{code,msg}] }
@@ -123,10 +128,13 @@ export function resolveSrc(src, o = {}) {
 
 // cỡ sân khấu: viewBox của <svg id="stage"> (mẫu motion2code), rồi <svg viewBox> đầu tiên, rồi 1920×1080 + W_FIXED_LAYOUT
 const VB = /\bviewBox\s*=\s*["']\s*(-?[\d.eE+-]+)[\s,]+(-?[\d.eE+-]+)[\s,]+([\d.eE+]+)[\s,]+([\d.eE+]+)\s*["']/;
-export function stageSize(html) {
+export function stageSize(html, o = {}) {
   const tags = String(html).replace(/<!--[\s\S]*?-->/g, '').match(/<svg\b[^>]*>/gi) || [];
   const pick = tags.find((t) => /\bid\s*=\s*["']stage["']/i.test(t) && VB.test(t)) || tags.find((t) => VB.test(t));
   if (pick) { const m = pick.match(VB); const w = Number(m[3]); const h = Number(m[4]); if (w > 0 && h > 0) return { size: [w, h], warnings: [] }; }
+  // "contract" khác "anim" (trang canvas của skill khác): cỡ <canvas width height> đầu tiên — chỉ đường mới, trang anim cũ giữ nguyên cách tính
+  if (o.canvas) { const c = (String(html).replace(/<!--[\s\S]*?-->/g, '').match(/<canvas\b[^>]*>/i) || [''])[0]; const w = Number((c.match(/\bwidth\s*=\s*["']?(\d+)/i) || [])[1]); const h = Number((c.match(/\bheight\s*=\s*["']?(\d+)/i) || [])[1]);
+    if (w > 0 && h > 0) return { size: [w, h], warnings: [] }; }
   return { size: [1920, 1080], warnings: [{ code: 'W_FIXED_LAYOUT', msg: 'the page has no <svg viewBox>: stage assumed 1920x1080 (a page laid out in fixed px may not scale to the box)' }] };
 }
 
@@ -154,7 +162,21 @@ const TIMER_TAG = '<script>(()=>{const st=setTimeout,si=setInterval,ct=clearTime
 const DATE_TAG = '<script>(()=>{const RD=Date;function D(...a){return new.target?Reflect.construct(RD,a.length?a:[RD.now()],new.target):new RD(RD.now()).toString()}'
   + 'Object.defineProperty(D,"length",{value:7});D.prototype=RD.prototype;D.now=()=>RD.now();D.parse=RD.parse;D.UTC=RD.UTC;'
   + 'Object.defineProperty(RD.prototype,"constructor",{value:D,writable:true,configurable:true});window.Date=D})()</script>';
-// o = { vclock, seedTag, baseHref, gsapDir (null = giữ GSAP của trang), gsapVersion, transparent, hide }
+// shim hợp đồng (chỉ khi "contract" khác "anim"): chạy sau script của trang, gọi hàm của trang lúc tua (trang có thể định nghĩa muộn)
+export function contractShim(c) {
+  if (!c || c === 'anim') return '';
+  return '<script data-es-anim>(()=>{if(window.anim&&typeof window.anim.seek==="function")return;const C=' + JSON.stringify(c) + ';const h=document.documentElement;'
+    + 'const fn=()=>C==="seek"?window.seek:C==="render"?window.render:window.renderFrame;'
+    + 'const dur=()=>{const T=window.TIMELINE;for(const v of [window.DURATION,window.DUR,window.duration,T&&T.duration]){const n=Number(v);if(typeof v!=="function"&&n>0)return n}'
+    + 'return Number(h.getAttribute("data-duration")||(document.body&&document.body.getAttribute("data-duration")))||0};'
+    + 'const rd=()=>window.ASSETS_READY!==undefined?window.ASSETS_READY:window.READY;'
+    + 'window.anim={get duration(){return dur()},seek(t){const f=fn();if(typeof f!=="function")throw new Error("contract "+C+": window."+C+" is not a function");'
+    + 'return C==="renderFrame"?f(t,document.querySelector("canvas"),0):f(t)},pause(){},play(){},'
+    + 'ready(){const r=rd();return r&&typeof r.then==="function"?r:undefined}};'
+    + 'if(h.dataset.ready)return;const ok=()=>{const r=rd();return typeof fn()==="function"&&(r===undefined||r===true||(r&&typeof r.then==="function"))};'
+    + 'const go=()=>{if(ok())h.dataset.ready="1";else setTimeout(go,25)};if(document.readyState==="complete")go();else addEventListener("load",go)})()</script>';
+}
+// o = { vclock, seedTag, baseHref, gsapDir (null = giữ GSAP của trang), gsapVersion, transparent, hide, contract }
 // → { html, kept: [URL GSAP không có bản cục bộ], gsap: { page, used }, epochFrozen }
 export function workCopy(src, o = {}) {
   src = String(src); const kept = []; let rewrote = false;
@@ -176,7 +198,7 @@ export function workCopy(src, o = {}) {
   // mỗi selector của hide một <style>: chuỗi / ngoặc [ ( chưa đóng trong một selector không nuốt các luật sau nó
   const hide = (o.hide || []).map((s) => '<style data-es-anim>' + s + '{display:none!important}</style>').join('');
   // cuối file (trình duyệt tự đưa vào <body>); tìm </head> có thể trúng chữ trong chú thích / chuỗi script
-  return { html: html + '<style data-es-anim>' + css + '</style>' + hide, kept, gsap: { page: pv, used: rewrote ? o.gsapVersion || 'local' : pv }, epochFrozen: !!o.vclock && vclock !== o.vclock };
+  return { html: html + '<style data-es-anim>' + css + '</style>' + hide + contractShim(o.contract), kept, gsap: { page: pv, used: rewrote ? o.gsapVersion || 'local' : pv }, epochFrozen: !!o.vclock && vclock !== o.vclock };
 }
 
 // ---------- thời lượng, SPEC, HTML trong cảnh (thuần) ----------
@@ -330,7 +352,7 @@ function normalize(e, W, H, defTimeout) {
   const f = (k, d) => (isNum(e[k]) ? Number(e[k]) : d);
   const n = { seek: f('seek', 0), speed: f('speed', 1), loop: e.loop !== false, until: e.loop === false && isNum(e.until) ? Number(e.until) : 0, duration: f('duration', 0),
     x: f('x', 0), y: f('y', 0), width: f('width', W), height: f('height', H), fit: e.fit || 'contain', background: e.background || 'page',
-    hide: Array.isArray(e.hide) ? e.hide.map((s) => String(s).trim()) : [], timeout: f('timeout', defTimeout), policy: e['on-error'] || 'fail' };
+    hide: Array.isArray(e.hide) ? e.hide.map((s) => String(s).trim()) : [], timeout: f('timeout', defTimeout), policy: e['on-error'] || 'fail', contract: e.contract || 'anim' };
   e.x = n.x; e.y = n.y; e.width = n.width; e.height = n.height; // sceneDoc của render.mjs dùng lại code cỡ hộp như html
   return n;
 }
@@ -383,7 +405,7 @@ export async function prepare(scenes, ctx) {
     let file = null; let rerr = null;
     if (hasSrc && !hasHtml) { const r = resolveSrc(e.src, { jobDir, cwd, repo: HERE }); if (r.error) rerr = r.error; else file = r.file; }
     const text = file ? fs.readFileSync(file, 'utf8') : hasHtml && !hasSrc ? e.html : null;
-    const st = text != null ? stageSize(text) : null;
+    const st = text != null ? stageSize(text, { canvas: !!e.contract && e.contract !== 'anim' }) : null;
     const v = validate(e, { W, H, stage: st && st.size });
     for (const x of v.errors) errors.push(where + ': ' + x.code + ': ' + x.msg);
     if (rerr && !v.errors.some((x) => x.code.startsWith('E_ANIM_SRC'))) errors.push(where + ': ' + rerr.code + ': ' + rerr.msg);
@@ -391,9 +413,9 @@ export async function prepare(scenes, ctx) {
     const n = normalize(e, W, H, defTimeout); const label = file ? e.src.trim() : 'inline html';
     const hash = sha256(text); const baseDir = file ? path.dirname(file) : jobDir;
     // cùng nội dung + cùng nền/ẩn/GSAP + cùng thư mục (đường dẫn tương đối) → dùng chung một bản sao
-    const key = sha256([hash, n.background, n.hide.join('\n'), gsapMode, baseDir].join('|'));
+    const key = sha256([hash, n.background, n.hide.join('\n'), gsapMode, baseDir].join('|') + (n.contract !== 'anim' ? '|' + n.contract : ''));
     let P = pages.get(key);
-    if (!P) { P = { n: pages.size, key, hash, label, text, baseDir, stage: st.size, background: n.background, hide: n.hide, timeout: n.timeout, untils: [], users: [], dead: false, why: '', warnings: [], dur: 0, gsap: null, url: '', seen: new Set() }; pages.set(key, P); }
+    if (!P) { P = { n: pages.size, key, hash, label, text, baseDir, stage: st.size, background: n.background, hide: n.hide, contract: n.contract, timeout: n.timeout, untils: [], users: [], dead: false, why: '', warnings: [], dur: 0, gsap: null, url: '', seen: new Set() }; pages.set(key, P); }
     P.timeout = Math.max(P.timeout, n.timeout); if (n.until) P.untils.push(n.until);
     e._anim = { page: P, label, where, policy: n.policy, n, warnings: [...v.warnings, ...st.warnings].map(fmt), run: null };
     P.users.push({ s, e, k });
@@ -401,7 +423,7 @@ export async function prepare(scenes, ctx) {
   if (errors.length) throw new Error(errors.join('\n'));
   for (const P of pages.values()) {
     const wc = workCopy(P.text, { vclock: ctx.vclock, seedTag: ctx.seedFor ? ctx.seedFor(P.hash) : '', baseHref: pathToFileURL(P.baseDir + path.sep).href,
-      gsapDir: gsapMode === 'local' ? GSAP_DIR : null, gsapVersion, transparent: P.background === 'transparent', hide: P.hide });
+      gsapDir: gsapMode === 'local' ? GSAP_DIR : null, gsapVersion, transparent: P.background === 'transparent', hide: P.hide, contract: P.contract });
     if (!wc.epochFrozen) throw new Error('anim: internal error: the VCLOCK epoch replacement did not match (render.mjs VCLOCK changed?)');
     const file = path.join(work, 'anim' + P.n + '.html'); fs.writeFileSync(file, wc.html, 'utf8');
     P.url = pathToFileURL(file).href + '?external=1'; P.gsap = wc.gsap; delete P.text;
@@ -413,7 +435,7 @@ export async function prepare(scenes, ctx) {
   finally { await watch(browser.close(), 15000, 'browser.close()').catch(() => {}); }
   [...pages.values()].forEach((P, i) => {
     const r = res[i]; P.dur = r.dur; P.warnings.push(...r.warnings);
-    log('anim', P.label + (P.background === 'transparent' ? ' [transparent]' : '') + (P.hide.length ? ' [hide ' + P.hide.join(' ') + ']' : ''), r.ok ? 'ok' : 'FAILED', 'D ' + P.dur + 's', 'stage ' + P.stage.join('x'), 'gsap ' + (P.gsap.page || '-') + '→' + (P.gsap.used || '-'), r.ms + 'ms',
+    log('anim', P.label + (P.contract !== 'anim' ? ' [contract ' + P.contract + ']' : '') + (P.background === 'transparent' ? ' [transparent]' : '') + (P.hide.length ? ' [hide ' + P.hide.join(' ') + ']' : ''), r.ok ? 'ok' : 'FAILED', 'D ' + P.dur + 's', 'stage ' + P.stage.join('x'), 'gsap ' + (P.gsap.page || '-') + '→' + (P.gsap.used || '-'), r.ms + 'ms',
       ...[...new Set([...P.warnings, ...P.users.flatMap((u) => u.e._anim.warnings)])].map((w) => '\n    ' + w));
     if (!r.ok) {
       const fails = P.users.filter((u) => u.e._anim.policy !== 'hide');

@@ -1,0 +1,25 @@
+{
+ "width": 1080,
+ "height": 1920,
+ "creative": "off",
+ "scenes": [
+  {
+   "comment": "s01 hook — Motion (vanilla) theo đồng hồ ảo",
+   "background-color": "#0E0F16",
+   "duration": 4,
+   "elements": [
+    {
+     "type": "html",
+     "libs": [
+      "motion"
+     ],
+     "html": "<div style=\"width:1080px;height:1400px;position:relative\"><div style=\"position:absolute;top:40px;width:100%;text-align:center;font:800 80px sans-serif;color:#F6EECD\">Motion</div>\n<div style=\"position:absolute;top:150px;width:100%;text-align:center;font:600 40px sans-serif;color:#8C93A8\">animate() + ES.motion · spring() thuần</div>\n<div id=\"card\" style=\"position:absolute;left:190px;top:330px;width:700px;height:300px;border-radius:40px;background:linear-gradient(135deg,#7B5CFF,#FF5CA8);box-shadow:0 30px 80px #0008\"></div>\n<div id=\"dots\" style=\"position:absolute;left:0;top:820px;width:1080px;height:200px\"></div></div>\n<script>(()=>{const M=window.Motion;\n// 1) animate() rồi giao cho ES.motion: c.time = giây phần tử, frameloop xả ngay trong lượt tua (không trễ khung)\nES.motion(M.animate('#card',{y:[300,0],rotate:[-8,0],opacity:[0,1]},{type:'spring',bounce:0.45,visualDuration:0.8}),0);\n// 2) toán thuần (mặc định khuyên dùng): spring().next(ms) tính thẳng giá trị ở giây t\nconst dots=document.getElementById('dots');const els=[];for(let i=0;i<7;i++){const d=document.createElement('div');d.style.cssText='position:absolute;top:60px;width:90px;height:90px;border-radius:50%;background:#FFD24A;left:'+(80+i*135)+'px';dots.appendChild(d);els.push(d)}\nconst sp=M.spring({keyframes:[0,1],bounce:0.6,visualDuration:0.5});\nES.onSeek.push((t)=>{els.forEach((d,i)=>{const ms=Math.max(0,(t-1-i*0.12))*1000;const v=ms>0?sp.next(ms).value:0;d.style.transform='translateY('+(-200*(1-v)).toFixed(2)+'px) scale('+v.toFixed(4)+')'})});})();</script>",
+     "x": 0,
+     "y": 260,
+     "width": 1080,
+     "height": 1400
+    }
+   ]
+  }
+ ]
+}

@@ -27,6 +27,8 @@ const BASE = baseRef(); const baseDir = path.join(D, 'base');
 before(() => {
   fs.mkdirSync(baseDir, { recursive: true });
   fs.writeFileSync(path.join(baseDir, 'render.mjs'), git('show', BASE + ':render.mjs') + '\n');
+  // render.mjs của BASE có thể import anim.mjs (từ khi có phần tử anim): lấy đúng bản của BASE
+  try { fs.writeFileSync(path.join(baseDir, 'anim.mjs'), execFileSync('git', ['-C', REPO, 'show', BASE + ':anim.mjs'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString()); } catch (e) { /* BASE chưa có anim.mjs */ }
   // render.mjs tìm thư viện cạnh chính nó (node_modules/…) và tts.py
   fs.symlinkSync(path.join(REPO, 'node_modules'), path.join(baseDir, 'node_modules'));
   fs.symlinkSync(path.join(REPO, 'tts.py'), path.join(baseDir, 'tts.py'));

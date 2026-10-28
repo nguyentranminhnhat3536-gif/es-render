@@ -1,0 +1,15 @@
+{ "width": 1080, "height": 1920, "creative": "off",
+  "scenes": [
+    { "comment": "s01 hook — file .lottie có theme + slot: cùng một hoạt ảnh, đổi màu thương hiệu không cần sửa file",
+      "background-color": "#101018", "duration": 4,
+      "elements": [
+        { "type": "html", "html": "<div style=\"font:800 76px/1.15 sans-serif;color:#F6EECD;text-align:center;padding-top:200px\">dotLottie<br><span style=\"font-size:44px;opacity:.7\">theme · slot · segment</span></div>",
+          "x": 0, "y": 0, "width": 1080, "height": 600, "animation": "rise" },
+        { "type": "dotlottie", "src": "multi_themes.lottie", "theme": "dark", "x": 40, "y": 620, "width": 480, "height": 480, "loop": true },
+        { "type": "dotlottie", "src": "multi_themes.lottie", "slots": { "bg_color": "#E50914", "check_color": "#FFFFFF" }, "x": 560, "y": 620, "width": 480, "height": 480, "start": 0.4, "speed": 1.5, "animation": "pop" },
+        { "type": "dotlottie", "src": "multi_themes.lottie", "theme": "sky", "segment": [0, 45], "loop": false, "x": 300, "y": 1160, "width": 480, "height": 480, "start": 1, "fade-in": 0.3 } ] },
+    { "comment": "s02 item — .lottie thứ hai, phủ cả khung, tua ngược tốc độ khác",
+      "background-color": "#F2E6D0", "duration": 3, "transition": { "style": "fade", "duration": 0.3 },
+      "elements": [
+        { "type": "dotlottie", "src": "hamster.lottie", "x": 90, "y": 460, "width": 900, "height": 900, "fit": "contain" },
+        { "type": "html", "html": "<div style=\"font:800 64px sans-serif;color:#2B1B0E;text-align:center\">ES.onSeek → setFrame</div>", "x": 0, "y": 1450, "width": 1080, "height": 120, "animation": "rise" } ] } ] }

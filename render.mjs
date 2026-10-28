@@ -14,6 +14,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawn, execFileSync } from 'node:child_process';
 import * as ANIM from './anim.mjs';
+import * as LIBS2 from './libs.mjs';
+import * as EL from './els.mjs';
 
 const FPS = Number(process.env.RENDER_FPS || 30);
 const CONC = Math.max(1, Number(process.env.RENDER_CONCURRENCY || Math.min(3, os.cpus().length - 1 || 1)));
@@ -23,7 +25,8 @@ const PY = process.env.PYTHON || 'python3';
 const LUFS = Number(process.env.TARGET_LUFS || -14);
 
 const jobPath = process.argv[2];
-if (jobPath === '--features') { console.log(JSON.stringify({ features: ANIM.FEATURES })); process.exit(0); } // es-editor: engine có phần tử anim chưa
+// es-editor: engine có phần tử / thư viện nào (anim; dotlottie, rive; lib:anime4, lib:motion; anim-contract)
+if (jobPath === '--features') { console.log(JSON.stringify({ features: [...ANIM.FEATURES, ...EL.FEATURES] })); process.exit(0); }
 const outDir = path.resolve(process.argv[3] || 'out');
 if (!jobPath) { console.error('usage: node render.mjs jobs/<id>.json [out_dir]'); process.exit(2); }
 const job = JSON.parse(fs.readFileSync(jobPath, 'utf8'));
@@ -66,14 +69,20 @@ const probeColor = (f) => { try { return Object.fromEntries(execFileSync(FFPROBE
 // tone map HDR cần zscale (libzimg, có sẵn trong ffmpeg apt của Ubuntu); bản ffmpeg thiếu → bỏ tone map (màu nhạt) thay vì hỏng cả job
 let zs; const hasZscale = () => { if (zs === undefined) { try { zs = /\bzscale\b/.test(execFileSync(FFMPEG, ['-hide_banner', '-filters']).toString()); } catch (e) { zs = false; } if (!zs) log('ffmpeg thiếu zscale → video HDR/BT.2020 không được tone map'); } return zs; };
 
-async function download(url, dest, tries = 4) {
+// max > 0 (phần tử dotlottie / rive): quá max byte → lỗi E_ASSET_TOO_BIG ngay, không tải hết, không thử lại
+async function download(url, dest, tries = 4, max = 0) {
   for (let i = 0; i < tries; i++) {
     try {
       const r = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'Mozilla/5.0 es-render' } });
       if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (max > 0) { const big = () => Object.assign(new Error('E_ASSET_TOO_BIG: ' + url + ' > ' + (max / 1048576).toFixed(0) + ' MB'), { big: true });
+        if (Number(r.headers.get('content-length')) > max) { try { await r.body.cancel(); } catch (x) { /* */ } throw big(); }
+        const parts = []; let n = 0; const rd = r.body.getReader();
+        for (;;) { const { done, value } = await rd.read(); if (done) break; n += value.length; if (n > max) { try { await rd.cancel(); } catch (x) { /* */ } throw big(); } parts.push(value); }
+        fs.writeFileSync(dest, Buffer.concat(parts)); return dest; }
       fs.writeFileSync(dest, Buffer.from(await r.arrayBuffer()));
       return dest;
-    } catch (e) { if (i >= tries - 1) throw new Error('download failed ' + url + ': ' + e.message); await new Promise((s) => setTimeout(s, 1500 * (i + 1))); }
+    } catch (e) { if (e.big) throw e; if (i >= tries - 1) throw new Error('download failed ' + url + ': ' + e.message); await new Promise((s) => setTimeout(s, 1500 * (i + 1))); }
   }
 }
 const cache = new Map();
@@ -107,6 +116,9 @@ async function main() {
   // trang anim.seek: kiểm tra + chạy thử trước TTS (lỗi hợp đồng báo sớm, đọc anim.duration cho thời lượng cảnh); job không có anim → bỏ qua
   await ANIM.prepare(scenes, { jobPath, movie, work, W, H, FPS, log, launch: loadChromium, vclock: VCLOCK,
     seedFor: (k) => seedTag(Math.floor(rng(CR.seed + ':anim:' + k)() * 4294967296)) });
+  // phần tử dotlottie / rive → html + libs (els.mjs); job không có thì không làm gì
+  await EL.expand(scenes, { jobPath, work, W, H, log, download });
+  for (const s of scenes) for (const e of s.elements) if (e.type === 'html' && extraKeys([e]).length) for (const w of LIBS2.lint(e.html)) log('scene', s.i + 1 + ':', w);
   if (voices.length) {
     fs.writeFileSync(path.join(work, 'tts.json'), JSON.stringify(voices));
     await run(PY, [path.join(path.dirname(new URL(import.meta.url).pathname), 'tts.py'), path.join(work, 'tts.json')]);
@@ -224,16 +236,19 @@ const GSAP_PLUGINS = { customease: ['CustomEase'], custombounce: ['CustomBounce'
   flip: ['Flip'], physics2d: ['Physics2DPlugin'], physicsprops: ['PhysicsPropsPlugin'] };
 const LIBS = { gsap: 'gsap/dist/gsap.min.js', anime: 'animejs/lib/anime.min.js', lottie: 'lottie-web/build/player/lottie.min.js', three: 'three/build/three.min.js',
   ...Object.fromEntries(Object.entries(GSAP_PLUGINS).map(([k, [g]]) => [k, 'gsap/dist/' + g + '.min.js'])) };
-const libKey = (n) => { const k = String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); return LIBS[k] ? k : LIBS[k.replace(/plugin$/, '')] ? k.replace(/plugin$/, '') : k === 'animejs' ? 'anime' : k === 'lottieweb' ? 'lottie' : k; };
+const libKey = (n) => { const k = String(n).toLowerCase().replace(/[^a-z0-9]/g, ''); return LIBS[k] ? k : LIBS[k.replace(/plugin$/, '')] ? k.replace(/plugin$/, '') : k === 'animejs' ? 'anime' : k === 'lottieweb' ? 'lottie' : LIBS2.key(k); };
+// khoá mới (libs.mjs: anime4, motion, dotlottie, rive) — nạp sau các khoá cũ; cảnh không có khoá mới → HTML như cũ từng byte
+const extraKeys = (els) => [...new Set(els.flatMap((e) => (Array.isArray(e.libs) ? e.libs : [])).map(libKey).filter(LIBS2.isExtra))];
 const libTag = (name) => { const f = LIBS[name] && path.join(path.dirname(new URL(import.meta.url).pathname), 'node_modules', LIBS[name]); return f && fs.existsSync(f) ? '<script src="file://' + f + '"></script>' : ''; };
 function libsFor(s) {
+  const extra = extraKeys(s.elements);
   const want = new Set(s.elements.flatMap((e) => (Array.isArray(e.libs) ? e.libs : [])).map(libKey).filter((k) => LIBS[k]));
   if (want.has('custombounce') || want.has('customwiggle')) want.add('customease');
   const plugins = [...want].filter((k) => GSAP_PLUGINS[k]); if (plugins.length) want.add('gsap');
   // thứ tự nạp: gsap → thư viện khác → CustomEase (CustomBounce / CustomWiggle cần nó) → các plugin còn lại
   const rank = (k) => (k === 'gsap' ? 0 : !GSAP_PLUGINS[k] ? 1 : k === 'customease' ? 2 : 3);
   const reg = plugins.length ? '<script>if(window.gsap)try{gsap.registerPlugin(...' + JSON.stringify(plugins.flatMap((k) => GSAP_PLUGINS[k])) + '.map((n)=>window[n]).filter(Boolean))}catch(e){}</script>' : '';
-  return [...want].sort((a, b) => rank(a) - rank(b)).map(libTag).join('') + reg;
+  return [...want].sort((a, b) => rank(a) - rank(b)).map(libTag).join('') + reg + (extra.length ? LIBS2.tags(extra, { work }) : '');
 }
 // số ngẫu nhiên cố định theo seed của job + số thứ tự cảnh (Math.random trong html / thư viện) → dựng lại ra y hệt
 const seedTag = (n) => '<script>Math.random=(()=>{let a=' + (n >>> 0) + ';return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}})()</script>';
@@ -274,7 +289,7 @@ function sceneDoc(s, head) {
     + '#cam{position:absolute;left:0;top:0;width:' + W + 'px;height:' + H + 'px;isolation:isolate;transform-origin:center center}</style></head><body>'
     + '<svg width="0" height="0" style="position:absolute"><filter id="mb" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feGaussianBlur id="mbg" stdDeviation="0" edgeMode="duplicate"/></filter></svg>'
     + '<div id="stage"><div id="cam">' + html + '</div></div>'
-    + '<script>window.SPEC=' + JSON.stringify(els).replace(/</g, '\\u003c') + ';window.CAM=' + JSON.stringify(s.cam || null) + ';window.WH=[' + W + ',' + H + '];window.FPS=' + FPS + ';' + PAGE_JS + (s.elements.some(ANIM.isLive) ? ANIM.PAGE_JS : '') + '</script></body></html>';
+    + '<script>window.SPEC=' + JSON.stringify(els).replace(/</g, '\\u003c') + ';window.CAM=' + JSON.stringify(s.cam || null) + ';window.WH=[' + W + ',' + H + '];window.FPS=' + FPS + ';' + PAGE_JS + (s.elements.some(ANIM.isLive) ? ANIM.PAGE_JS : '') + (extraKeys(s.elements).length ? LIBS2.WAIT_JS : '') + '</script></body></html>';
 }
 const PAGE_JS = `
 const c1 = 1.70158, c3 = c1 + 1, c4 = (2 * Math.PI) / 3;
@@ -412,6 +427,13 @@ async function localizeVideos() {
     e._vf = { dir, n };
   }
 }
+// chụp khung; CDP đôi khi báo "Unable to capture screenshot" (máy quá tải) → thử lại tối đa 2 lần sau 250 / 500 ms (lần hỏng không có ảnh nên không đổi khung của lần chạy tốt)
+async function capture(cdp, f) {
+  for (let k = 0; ; k++) {
+    try { return (await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 90, optimizeForSpeed: true, clip: { x: 0, y: 0, width: W, height: H, scale: 1 } })).data; }
+    catch (err) { if (k >= 2 || !/captureScreenshot|Unable to capture/i.test(String(err && err.message))) throw err; log('frame', f, 'captureScreenshot lỗi → thử lại:', String(err.message).slice(0, 120)); await new Promise((r) => setTimeout(r, 250 * (k + 1))); }
+  }
+}
 async function renderScenes() {
   await localizeImages();
   await localizeVideos();
@@ -430,25 +452,31 @@ async function renderScenes() {
       fs.writeFileSync(docPath, sceneDoc(s, head));
       await page.goto('file://' + docPath, { waitUntil: 'load', timeout: 60000 }).catch(() => {});
       ANIM.afterReady(s, await ANIM.watch(page.evaluate(() => window.ready()), wd, 'ready()').catch((err) => { throw ANIM.sceneError(s, err); }), log);
+      const xk = extraKeys(s.elements); // thư viện mới: ghi tên@phiên bản vào log (không vào result.json)
       s.file = path.join(work, 'seg' + String(s.i).padStart(3, '0') + '.mp4');
       const ff = spawn(FFMPEG, ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-vf', TO709, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', ...TAG709, '-r', String(FPS), s.file], { stdio: ['pipe', 'inherit', 'inherit'] });
       const done = new Promise((res, rej) => ff.on('close', (c) => (c === 0 ? res() : rej(new Error('ffmpeg scene ' + s.i + ' exit ' + c)))));
       // khung hình không đổi (đoạn giữ hình) → dùng lại ảnh trước, đỡ chụp lại
       let prevSig = null; let prevBuf = null; let shots = 0;
       for (let f = 0; f < s.frames; f++) {
-        const sig = await ANIM.watch(page.evaluate((t) => window.seek(t), f / FPS), wd && 30000, 'frame ' + f).catch((err) => { throw ANIM.sceneError(s, err); });
+        // E_RIVE_DRAW (khung Rive vẽ hỏng, els.mjs): tua lại khung đó tối đa 2 lần (Rive dựng lại từ 0 → cùng hình); vẫn hỏng → job lỗi, không bao giờ nhận khung sai
+        const seekF = () => ANIM.watch(page.evaluate((t) => window.seek(t), f / FPS), wd && 30000, 'frame ' + f);
+        let sig; for (let k = 0; ; k++) { try { sig = await seekF(); break; } catch (err) {
+          if (!(xk.length && k < 2 && /E_RIVE_DRAW/.test(String(err && err.message)))) throw ANIM.sceneError(s, err);
+          log('scene', s.i + 1 + ':', 'frame', f, String(err.message).split('\n')[0].replace(/^.*?(E_RIVE_DRAW)/, '$1'), '→ thử lại'); await new Promise((r) => setTimeout(r, 300)); } }
         let buf = prevBuf;
         if (sig !== prevSig || !buf) {
-          const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 90, optimizeForSpeed: true, clip: { x: 0, y: 0, width: W, height: H, scale: 1 } });
+          const data = await capture(cdp, f);
           buf = Buffer.from(data, 'base64'); prevBuf = buf; prevSig = sig; shots++;
         }
         if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
       }
       s.shots = shots;
       if (wd) ANIM.afterScene(s, await page.evaluate(() => window.__esAnim.report()), log);
+      if (xk.length) for (const w of await page.evaluate(() => window.__esElWarn || [])) log('scene', s.i + 1 + ':', w); // dotlottie / rive "on-error": "hide"
       ff.stdin.end();
       await done;
-      log('scene', s.i + 1 + '/' + scenes.length, s.D.toFixed(2) + 's', s.frames, 'frames,', s.shots, 'shots', ((Date.now() - t0) / 1000).toFixed(1) + 's');
+      log('scene', s.i + 1 + '/' + scenes.length, s.D.toFixed(2) + 's', s.frames, 'frames,', s.shots, 'shots', ((Date.now() - t0) / 1000).toFixed(1) + 's', ...(xk.length ? ['libs', xk.map((k) => k + '@' + LIBS2.version(k)).join(' ')] : []));
     }
     await ctx.close();
   };
@@ -626,14 +654,31 @@ async function mixAudio(out, TOTAL) {
     const stops = clips.filter((c) => c.stop).map((c) => "volume=enable='between(t," + r3(Math.max(0, c.peak - 0.45)) + ',' + r3(c.peak) + ")':volume=0.12").join(',');
     f += '[' + n + ':a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=duration=' + TOTAL + ',asetpts=PTS-STARTPTS,volume=' + num(music.volume, 0.3) + (stops ? ',' + stops : '') + (fo > 0 ? ',afade=t=out:st=' + r3(Math.max(0, TOTAL - fo)) + ':d=' + r3(fo) : '') + '[mus0];';
     n++; hasMus = true;
-    if (hasVox) { f += '[vox]asplit=2[voxm][voxk];[mus0][voxk]sidechaincompress=threshold=0.025:ratio=4:attack=20:release=400[mus];'; } else f += '[mus0]anull[mus];';
+    // music.duck (tuỳ chọn): { threshold, ratio, attack, release, voice_band } — mặc định đúng như trước (0.025 / 4 / 20 / 400, không lọc dải)
+    const dk = music.duck && typeof music.duck === 'object' ? music.duck : {}; const dv = (k, d, lo, hi) => { const v = num(dk[k], d); return Math.min(hi, Math.max(lo, v)); };
+    const key = dk.voice_band === true ? '[voxk0];[voxk0]highpass=f=120,lowpass=f=6000[voxk]' : '[voxk]'; // dải giọng chỉ trên tín hiệu khoá, không đổi tiếng giọng
+    if (hasVox) { f += '[vox]asplit=2[voxm]' + key + ';[mus0][voxk]sidechaincompress=threshold=' + dv('threshold', 0.025, 0.000976563, 1) + ':ratio=' + dv('ratio', 4, 1, 20) + ':attack=' + dv('attack', 20, 0.01, 2000) + ':release=' + dv('release', 400, 0.01, 9000) + '[mus];'; } else f += '[mus0]anull[mus];';
   }
   const parts = []; if (hasVox) parts.push(hasMus ? '[voxm]' : '[vox]'); if (hasFx) parts.push('[fx]'); if (hasMus) parts.push('[mus]');
   if (!parts.length) { f += 'anullsrc=r=48000:cl=stereo,atrim=duration=' + TOTAL + '[aout]'; }
   else f += parts.join('') + (parts.length > 1 ? 'amix=inputs=' + parts.length + ':normalize=0:dropout_transition=0,' : '') + 'apad=whole_dur=' + TOTAL + ',atrim=duration=' + TOTAL + ',loudnorm=I=' + LUFS + ':TP=-1.5:LRA=11,aresample=48000[aout]';
+  // movie.audio.loudnorm: "2pass" (hoặc env LOUDNORM=2pass): đo một lần rồi chuẩn hoá tuyến tính theo số đo — mặc định vẫn 1 lượt như trước
+  const LN = 'loudnorm=I=' + LUFS + ':TP=-1.5:LRA=11';
+  if (String((movie.audio && movie.audio.loudnorm) || process.env.LOUDNORM || '').toLowerCase() === '2pass' && f.includes(LN + ',aresample')) {
+    fs.writeFileSync(path.join(work, 'af1.txt'), f.replace(LN + ',aresample', LN + ':print_format=json,aresample'));
+    const err = await runErr(FFMPEG, [...args.map((a) => (a === '-v' ? '-v' : a === 'error' ? 'info' : a)), '-filter_complex_script', path.join(work, 'af1.txt'), '-map', '[aout]', '-f', 'null', '-']);
+    const m = JSON.parse((err.match(/\{\s*"input_i"[\s\S]*?\}/) || ['{}'])[0]); const ok = ['input_i', 'input_tp', 'input_lra', 'input_thresh', 'target_offset'].every((k) => Number.isFinite(Number(m[k])));
+    if (ok) { f = f.replace(LN + ',aresample', LN + ':measured_I=' + m.input_i + ':measured_TP=' + m.input_tp + ':measured_LRA=' + m.input_lra + ':measured_thresh=' + m.input_thresh + ':offset=' + m.target_offset + ':linear=true,aresample'); log('loudnorm 2pass: đo', m.input_i, 'LUFS', m.input_tp, 'dBTP'); }
+    else log('loudnorm 2pass: không đọc được số đo → 1 lượt');
+  }
   fs.writeFileSync(path.join(work, 'af.txt'), f);
   args.push('-filter_complex_script', path.join(work, 'af.txt'), '-map', '[aout]', '-ac', '2', '-ar', '48000', out);
   await run(FFMPEG, args);
+}
+// như run(), trả về stderr (số đo loudnorm)
+function runErr(cmd, args) {
+  return new Promise((res, rej) => { const p = spawn(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'] }); let err = ''; p.stderr.on('data', (d) => { err += d; if (err.length > 200000) err = err.slice(-200000); });
+    p.on('close', (c) => (c === 0 ? res(err) : rej(new Error(cmd + ' exit ' + c + ': ' + err.slice(-1500))))); });
 }
 
 main().catch((e) => {

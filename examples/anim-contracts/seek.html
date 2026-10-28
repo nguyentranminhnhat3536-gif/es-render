@@ -1,0 +1,17 @@
+<!doctype html>
+<!-- hợp đồng "seek": window.seek(t) + window.DURATION + window.READY (kiểu trang của product-launch-motion / charlie947) -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#16121F;overflow:hidden}svg{position:absolute;inset:0;width:100%;height:100%}</style></head>
+<body><svg id="stage" viewBox="0 0 1080 1080" xmlns="http://www.w3.org/2000/svg">
+<text x="540" y="170" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="72" fill="#F6EECD">contract: "seek"</text>
+<g id="bars"></g><circle id="dot" cx="540" cy="840" r="46" fill="#FF5CA8"/></svg>
+<script>
+var DURATION = 4; window.READY = false;
+const bars = document.getElementById('bars'); const B = [];
+for (let i = 0; i < 9; i++) { const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('x', 110 + i * 100); r.setAttribute('width', 70); r.setAttribute('rx', 14); r.setAttribute('fill', ['#7B5CFF', '#4D9DFF', '#3DDC97'][i % 3]); bars.appendChild(r); B.push(r); }
+const ease = (u) => 1 - Math.pow(1 - Math.min(1, Math.max(0, u)), 3);
+window.seek = (t) => {
+  B.forEach((r, i) => { const h = 80 + 380 * ease((t - i * 0.12) / 0.9) * (0.55 + 0.45 * Math.sin(i * 1.7 + t * 2)); r.setAttribute('y', 720 - h); r.setAttribute('height', h); });
+  document.getElementById('dot').setAttribute('cx', 140 + 800 * ease(t / DURATION));
+};
+window.seek(0); window.READY = true;
+</script></body></html>

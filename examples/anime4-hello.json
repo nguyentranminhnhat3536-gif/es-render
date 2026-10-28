@@ -1,0 +1,37 @@
+{
+ "width": 1080,
+ "height": 1920,
+ "creative": "off",
+ "scenes": [
+  {
+   "comment": "s01 hook — anime.js v4 (anime4) cạnh v3 (anime) trong một cảnh, tua bằng tl.seek(ms)",
+   "background-color": "#12131A",
+   "duration": 4,
+   "elements": [
+    {
+     "type": "html",
+     "libs": [
+      "anime4"
+     ],
+     "html": "<div id=\"w\" style=\"width:1080px;height:900px;position:relative;font-family:sans-serif\"><div style=\"position:absolute;top:60px;width:100%;text-align:center;font:800 80px sans-serif;color:#F6EECD\">anime.js v4</div>\n<div class=\"sq\" style=\"position:absolute;left:140px;top:300px;width:120px;height:120px;border-radius:24px;background:#FF4D6D\"></div><div class=\"sq\" style=\"position:absolute;left:340px;top:300px;width:120px;height:120px;border-radius:24px;background:#FFC53D\"></div><div class=\"sq\" style=\"position:absolute;left:540px;top:300px;width:120px;height:120px;border-radius:24px;background:#3DDC97\"></div><div class=\"sq\" style=\"position:absolute;left:740px;top:300px;width:120px;height:120px;border-radius:24px;background:#4D9DFF\"></div>\n<div id=\"n\" style=\"position:absolute;top:560px;width:100%;text-align:center;font:800 150px sans-serif;color:#fff\">0</div></div>\n<script>(()=>{const {createTimeline,stagger,utils}=anime4;const o={v:0};const n=document.getElementById('n');\nconst tl=createTimeline({autoplay:false}).add('.sq',{y:[{to:-160,ease:'outExpo',duration:500},{to:0,ease:'outBounce',duration:700}],rotate:{from:-180},scale:[0.2,1],delay:stagger(120)})\n .add(o,{v:2026,duration:1400,ease:'inOutQuad',onUpdate:()=>{n.textContent=Math.round(o.v)}},300);\nES.onSeek.push((t)=>tl.seek(Math.max(0,t)*1000));})();</script>",
+     "x": 0,
+     "y": 220,
+     "width": 1080,
+     "height": 900
+    },
+    {
+     "type": "html",
+     "libs": [
+      "anime"
+     ],
+     "html": "<div style=\"width:1080px;height:500px;position:relative\"><div style=\"position:absolute;top:30px;width:100%;text-align:center;font:700 54px sans-serif;color:#9AA3B5\">cùng cảnh: anime v3 (window.anime)</div><div id=\"b3\" style=\"position:absolute;left:90px;top:180px;width:150px;height:150px;border-radius:50%;background:#C77DFF\"></div></div>\n<script>(()=>{const a=anime({targets:'#b3',translateX:[0,750],easing:'easeInOutSine',duration:2000,autoplay:false});ES.onSeek.push((t)=>a.seek(Math.max(0,t-0.5)*1000));})();</script>",
+     "x": 0,
+     "y": 1200,
+     "width": 1080,
+     "height": 500,
+     "start": 0.5
+    }
+   ]
+  }
+ ]
+}

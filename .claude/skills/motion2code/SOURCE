@@ -1,0 +1,6 @@
+motion2code skill — third-party skill, vendored as received; keep LICENSE with it.
+
+Author:    Lovis Odin — MIT License (see LICENSE: "Copyright (c) 2026 Lovis Odin"; SKILL.md front matter: license: MIT)
+Added:     es-render commit a703c89 (2026-10-21) "skill motion2code (Lovis Odin, MIT)"
+Upstream:  the upstream repository URL and commit were not recorded when the skill was added;
+           fill them in here when the skill is next updated from upstream.

@@ -3,3 +3,4 @@ out/
 *.log
 target/
 __pycache__/
+vendor-src/es3d/VERSIONS.gen.json

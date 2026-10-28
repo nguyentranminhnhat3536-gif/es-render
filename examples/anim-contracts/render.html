@@ -1,0 +1,18 @@
+<!doctype html>
+<!-- hợp đồng "render": window.render(t) + var DUR (canvas 2D, kiểu mô phỏng web-sims) -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#0B1020;overflow:hidden}canvas{position:absolute;inset:0;width:100%;height:100%}</style></head>
+<body><canvas id="c" width="1080" height="1080"></canvas>
+<script>
+var DUR = 4;
+const cv = document.getElementById('c'); const g = cv.getContext('2d');
+// bầy hạt: vị trí là hàm thuần của t (không tích luỹ) → tua tới đâu cũng đúng
+const N = 140; const P = []; let s = 7; const rnd = () => ((s = Math.imul(s ^ (s >>> 15), 2246822507) + 0x6D2B79F5 | 0) >>> 0) / 4294967296;
+for (let i = 0; i < N; i++) P.push({ r: 120 + rnd() * 330, a: rnd() * Math.PI * 2, w: 0.3 + rnd() * 0.9, z: 3 + rnd() * 9, h: 180 + rnd() * 120 });
+window.render = (t) => {
+  g.fillStyle = '#0B1020'; g.fillRect(0, 0, 1080, 1080);
+  g.fillStyle = '#E8ECFF'; g.font = '800 72px sans-serif'; g.textAlign = 'center'; g.fillText('contract: "render"', 540, 140);
+  for (const p of P) { const a = p.a + t * p.w; const r = p.r * (0.6 + 0.4 * Math.sin(t * 1.3 + p.a)); g.fillStyle = 'hsl(' + p.h + ',90%,65%)';
+    g.beginPath(); g.arc(540 + Math.cos(a) * r, 600 + Math.sin(a) * r * 0.75, p.z, 0, Math.PI * 2); g.fill(); }
+};
+window.render(0); document.documentElement.dataset.ready = '1';
+</script></body></html>

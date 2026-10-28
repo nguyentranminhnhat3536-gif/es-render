@@ -1,0 +1,15 @@
+{
+  "comment": "Ví dụ phần tử 3d (es3d): sản phẩm rơi có vật lý xuống bệ xoay, hạt màu nảy, viền phát sáng (bloom). 9:16, 4 s. Dựng: node render.mjs examples/3d-hello/3d-hello.json out",
+  "width": 1080, "height": 1920, "creative": "off",
+  "scenes": [
+    { "duration": 4, "background-color": "#0b0b10",
+      "elements": [
+        { "type": "3d", "preset": "product-hero", "image": "label.png",
+          "colors": { "bg": "#0b0b10", "primary": "#ececf1", "accent": "#ff3b30", "accent2": "#ffd60a" },
+          "camera": { "fov": 35, "from": [0, 1.55, 6.4], "to": [0, 0.95, 0], "orbit": 0.22, "dolly": 0.1 },
+          "fx": { "bloom": 0.9, "vignette": 0.35 },
+          "physics": { "gravity": -9.81, "restitution": 0.35 },
+          "seed": 7, "x": 0, "y": 0, "width": 1080, "height": 1920 }
+      ] }
+  ]
+}
