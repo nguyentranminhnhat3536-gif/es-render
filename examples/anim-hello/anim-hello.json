@@ -1,0 +1,15 @@
+{ "width": 1080, "height": 1920,
+  "scenes": [
+    { "comment": "s01 hook — một trang motion2code làm cả cảnh (16:9 trong khung dọc: contain, nền trùng màu nên không thấy viền)",
+      "background-color": "#14142B", "duration": 5,
+      "elements": [
+        { "type": "anim", "src": "seek-loop.html" },
+        { "type": "html", "html": "<div style=\"font:800 84px/1.15 sans-serif;color:#F6EECD;text-align:center;padding-top:260px\">anim.seek<br>→ es-render</div>",
+          "x": 0, "y": 0, "width": 1080, "height": 640, "z-index": 2, "animation": "rise" } ] },
+    { "comment": "s02 item — cùng trang làm lớp phủ trong suốt: hiện ở giây 0.5, chạy từ giây 1.0 của animation, lặp qua mốc 5 s",
+      "background-color": "#0B0510", "duration": 7, "transition": { "style": "fade", "duration": 0.3 },
+      "elements": [
+        { "type": "html", "html": "<div style=\"width:1080px;height:1920px;background:linear-gradient(160deg,#3B1F5C,#0B0510)\"></div>",
+          "x": 0, "y": 0, "width": 1080, "height": 1920 },
+        { "type": "anim", "src": "seek-loop.html", "x": 60, "y": 1100, "width": 960, "height": 540,
+          "start": 0.5, "duration": 6, "seek": 1.0, "background": "transparent", "hide": ["#bg"], "z-index": 1, "fade-in": 0.3 } ] } ] }

@@ -6,7 +6,7 @@ Bộ dựng video miễn phí cho hệ thống ETHAN STUDIO (n8n · ES · 2). Kh
 
 Chạy thử trên máy: `npm install && pip install edge-tts && node render.mjs jobs/<id>.json out`
 
-Biến môi trường: `RENDER_FPS` (30), `RENDER_CONCURRENCY`, `TARGET_LUFS` (-14), `CHROME_PATH`, `FFMPEG`, `PYTHON`, `RENDER_CREATIVE` (bold), `RENDER_LOOK` (none). Mỗi video dựng xong được `qa.mjs` kiểm tra (kết quả ở `results/<id>.json` → `qa`).
+Biến môi trường: `RENDER_FPS` (30), `RENDER_CONCURRENCY`, `TARGET_LUFS` (-14), `CHROME_PATH`, `FFMPEG`, `PYTHON`, `RENDER_CREATIVE` (bold), `RENDER_LOOK` (none), `RENDER_ANIM_TIMEOUT` (20 s, cổng chờ trang anim), `RENDER_ANIM_GSAP` (`page` = giữ GSAP CDN của trang anim thay vì bản trong `node_modules`). Mỗi video dựng xong được `qa.mjs` kiểm tra (kết quả ở `results/<id>.json` → `qa`).
 
 ## Sáng tạo
 
@@ -48,6 +48,8 @@ Cùng một job dựng lại luôn ra cùng một video (ngẫu nhiên theo `see
 ## Thư viện chuyển động và QA
 
 - **GSAP / Anime.js / Lottie / Three.js** trong phần tử `html`: thêm `"libs": ["gsap"]` (nhúng từ `node_modules`, phiên bản cố định trong `package.json`). Trang dựng chạy *đồng hồ ảo* — `requestAnimationFrame`, `performance.now()`, `Date.now()` đi theo thời gian cảnh — nên mọi animation khớp từng khung; WebGL chạy SwiftShader (CPU). Điều khiển chính xác: `ES.onSeek.push((t) => tl.seek(t))`. Plugin GSAP (SplitText, ScrambleText, DrawSVG, MorphSVG, MotionPath, CustomEase/Bounce/Wiggle, Flip, Physics2D…) cũng chỉ cần thêm tên vào `libs` — tự nạp và đăng ký. `Math.random()` cố định theo seed → dựng lại ra y hệt.
+- **Trang anim.seek (motion2code) làm cảnh hoặc lớp phủ**: phần tử `{ "type": "anim", "src": "<id>/<tên>.html" }` nhúng một trang theo hợp đồng `window.anim = { duration, seek(t) }` + `<html data-ready="1">` (trang do skill `motion2code` tạo). render tự chờ trang sẵn sàng (font, ảnh, `data-ready`) rồi tua `anim.seek` đúng từng khung theo đồng hồ của cảnh; `seek`, `speed`, `loop` (+ `until` để dừng ở một giây), `fit` (contain|cover), `background: "transparent"` + `hide: ["#bg"]` cho lớp phủ. Trang hỏng hợp đồng → job lỗi (hoặc `"on-error": "hide"` để bỏ phần tử); `result.json` có `anims` (kết quả từng phần tử). Code ở `anim.mjs`, ví dụ: `node render.mjs examples/anim-hello/anim-hello.json out`. es-editor kiểm tra engine có hỗ trợ bằng `node render.mjs --features` → `{"features":["anim"]}`.
+- **Kiểm thử** (không cần mạng, không gọi API trả phí): `npm test` (thuần + trình duyệt, ~2 phút) và `npm run test:render` (dựng thật qua `render.mjs`, so với `render_anim.py` / `frame_diff.py` của motion2code, trang treo, và so khung với `render.mjs` trước thay đổi, ~3 phút). Cần Chromium của Playwright + ffmpeg; phần so với motion2code cần thêm `uv`. `ANIM_NET=1` bật các ca cần Google Fonts / cdnjs.
 - **QA** (`qa.mjs`): khung đen, đứng hình, không tiếng, sai kích thước/độ dài, độ to lệch -14 LUFS, chớp hình (1–2 khung lạc), khựng hình ở chỗ nối cảnh (mốc nối ở `result.scenes`).
 - **Skill Claude Code** `.claude/skills/es-video`: mở repo trong Claude Code rồi nói "làm video 60s giới thiệu …".
 
