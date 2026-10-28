@@ -1,6 +1,6 @@
 ---
 name: es-video
-description: Make a video with this repo (es-render) from a plain request — "làm video 60s giới thiệu X", motion graphics, explainer, product promo, kinetic typography, list/tutorial video with AI voice and captions, or embedding a motion2code / anim.seek page (window.anim.seek) as a scene or overlay. Use whenever the user asks for a video, a scene, or an animation to export as MP4, or a render job in this repo. Default for every video in this repo (n8n jobs, AI voice + captions, HyperFrames projects); hand off to the fframes-video skill only when the user names fframes/Rust or a jobs/<name>/ folder has a Cargo.toml.
+description: Make a video with this repo (es-render) from a plain request — "làm video 60s giới thiệu X", motion graphics, explainer, product promo, 3D product shot / logo spin (3d element: React Three Fiber + physics + bloom), kinetic typography, list/tutorial video with AI voice and captions, or embedding a motion2code / anim.seek page (window.anim.seek) as a scene or overlay. Use whenever the user asks for a video, a scene, or an animation to export as MP4, or a render job in this repo. Default for every video in this repo (n8n jobs, AI voice + captions, HyperFrames projects, Remotion projects via rm.mjs with its licence note); hand off to the fframes-video skill only when the user names fframes/Rust or a jobs/<name>/ folder has a Cargo.toml.
 ---
 
 # es-video — studio dựng video bằng code
@@ -62,7 +62,13 @@ ES.onSeek.push((t) => tl.seek(t - 1.2)); /* t = giây của cảnh; 1.2 = start 
   — hoặc `"animation": "<tên timeline>"`. Bước cố định 60 Hz theo đồng hồ ảo (30 hay 60 fps ra cùng tư thế), `time` của input tính bằng giây phần tử (trước `speed`).
   `.riv` có ảnh nhúng / tài nguyên ngoài → `E_RIVE_UNSUPPORTED` (xuất lại chỉ vector + font nhúng); âm thanh trong `.riv` bị bỏ (dùng `audio`).
 - Chung với `html`: `x y width height start duration fade-in fade-out z-index keyframes animation`, `"on-error": "hide"`, `"timeout"` (s). File ≤ 8 MB, cả job ≤ 24 MB;
-  đặt cạnh job (`jobs/<id>/…`). Mẫu: `examples/dotlottie-hello/`, `examples/rive-hello/`. File `.riv` / `.lottie` có giấy phép riêng — chỉ dùng file mình có quyền.
+  đặt cạnh job (`jobs/<id>/…`; trên CI file ngoài thư mục job / repo → `E_EL_SRC_OUTSIDE`). Mẫu: `examples/dotlottie-hello/`, `examples/rive-hello/`. File `.riv` / `.lottie` có giấy phép riêng — chỉ dùng file mình có quyền.
+
+### Phần tử 3d (bundle es3d: React Three Fiber + drei + rapier + postprocessing — chi tiết `references/3d.md`)
+
+- `{ "type": "3d", "preset": "product-hero", "image": "<id>/label.png", "colors": { "bg": "#0b0b10", "accent": "#ff3b30" }, "fx": { "bloom": 0.9, "vignette": 0.35 }, "physics": { "restitution": 0.35 }, "width": 1080, "height": 1920 }`
+  — sản phẩm (hộp có nhãn `image`, hoặc `model` `.glb` không nén) rơi có vật lý xuống bệ xoay + hạt nảy + viền phát sáng; `"preset": "logo-spin"` = đồng xu logo quay. Mẫu `examples/3d-hello/`.
+- Vật lý bước cố định 60 Hz, tư thế là hàm của `t`, hậu kỳ chỉ bloom / vignette / DOF (`fx.noise` bị từ chối). Không có chữ 3D: phủ `text` / `html`. Chậm (SwiftShader ~1,5–3 s / khung 1080×1920): giữ cảnh 3D ngắn (≤ 6–8 s), `aa: 0` để nhanh hơn.
 
 ### Trang anim.seek (motion2code) làm cảnh / lớp phủ
 
@@ -95,7 +101,8 @@ mà không cần giấy phép Remotion. Phần media của HyperFrames: chỉ c�
 | hoạt ảnh nhân vật / UI có state machine (`.riv`) | phần tử `rive` |
 | file `.lottie`, đổi màu thương hiệu bằng theme / slot | phần tử `dotlottie` (JSON Lottie thường: `libs: ["lottie"]`) |
 | code viết cho anime.js v4 / Motion | `libs: ["anime4"]` / `libs: ["motion"]` + `ES.onSeek` (`references/new-libs.md`) |
-| 3D đơn giản (logo xoay, khối) | `html` + `libs: ["three"]` (three 0.160, SwiftShader) |
+| sản phẩm 3D rơi có vật lý, bệ xoay, bloom; logo 3D xoay (preset) | phần tử `3d` (`product-hero`, `logo-spin`) |
+| 3D tự viết (khối, hạt, shader riêng) | `html` + `libs: ["three"]` (three 0.160, SwiftShader) |
 | phim ra mắt sản phẩm | skill `product-launch-motion` → `anim` (`"contract": "seek"`) hoặc dự án HF |
 | hiệu ứng / biểu đồ / mốc số liệu / explainer kiểu Vox / title 3D / ảnh bìa lặp | skill `motion-effects`, `animated-chart`, `milestone-reveal`, `vox-explainer`, `title-sequence-3d`, `loop-cover` → `anim` (`seek`) |
 | viết prompt motion từ brand / video tham khảo | `motion-prompt-writer`, `reference-to-motion` |
@@ -105,12 +112,29 @@ mà không cần giấy phép Remotion. Phần media của HyperFrames: chỉ c�
 | xem lại khung trước khi giao | skill `review-loop` + `qa.mjs` |
 | dựng lại video AI thành code | `motion2code` |
 | dự án HTML xem trực tiếp khi sửa | HyperFrames `jobs/<id>/index.html` |
-| dự án Remotion có sẵn | chưa dựng trong es-render — đọc ghi chú giấy phép Remotion trong README |
+| người dùng nhắc Remotion / có dự án Remotion (React, `useCurrentFrame`) | `rm.mjs` — `jobs/<id>/` có `package.json` (dep `remotion`) + `package-lock.json`; **nói giấy phép Remotion trước** (mục dưới) |
 | Rust / fframes | `fframes-video` |
 
 ### Chọn công cụ: movie JSON, HyperFrames hay fframes
 
 Mặc định — job từ n8n, video có giọng đọc AI + phụ đề karaoke, cảnh HTML/GSAP, ảnh/video nguồn — dùng **movie JSON + `render.mjs`**. Người dùng muốn **xem trực tiếp khi sửa** bằng HTML trên máy → **HyperFrames** (`hf.mjs`). Người dùng nhắc fframes/Rust, hoặc thư mục `jobs/<tên>/` có `Cargo.toml` → **dự án fframes** (motion graphics thuần code chính xác từng khung, dựng lại y hệt — logo động, đồ thị, chữ động, thẻ số liệu, intro/outro — thì có thể *gợi ý* fframes, nhưng hỏi trước): làm theo skill `fframes-video`, tạo bằng `cargo fframes new <tên> --format portrait --yes` (9:16) hay `--format landscape` (16:9), dựng bằng `node ff.mjs <thư mục> out`, đẩy thư mục vào `jobs/<tên>/` (có `Cargo.toml`) để Actions dựng; mẫu `examples/fframes-hello` (feature `landscape` + `FF_FORMAT` để chọn khổ lúc dựng). fframes không có TTS/phụ đề tự động: giọng đọc phải là file trong `media/`, và lần build đầu trên Actions mất ~15–25 phút (sau đó có cache).
+
+### Dự án Remotion (`rm.mjs`)
+
+Chỉ dùng khi người dùng nhắc Remotion hoặc đưa dự án Remotion có sẵn; không tự chọn Remotion thay cho movie JSON / HyperFrames.
+**Giấy phép (nói rõ với người dùng trước khi làm):** Remotion không phải mã nguồn mở — miễn phí cho cá nhân, công ty tối đa 3 nhân viên, tổ chức phi lợi nhuận
+(kể cả video thương mại); công ty từ 4 người trở lên cần Company License (remotion.pro). Tính theo người/công ty chạy render (cả khi dựng trên CI cho khách).
+Bản 5.0 đổi giấy phép. Không chép mã Remotion vào repo; skill Remotion chính thức chỉ cài cho tài khoản: `npx skills add -g remotion-dev/skills`.
+Muốn tránh giấy phép: skill `remotion-to-hyperframes` → HyperFrames.
+
+- Bắt đầu từ `examples/remotion-hello/` (9:16, 3 s, 30 khung/s) hoặc `npx create-video@4.0.539`; ghim **đúng** `remotion`, `@remotion/cli` (mọi `@remotion/*` cùng bản, mặc định 4.0.539),
+  chạy `npm install` để có `package-lock.json`, xem bằng `npx remotion studio`.
+- `remotion.json` (tuỳ chọn): `{ "entry": "src/index.ts", "composition": "Main", "concurrency": 1, "props": {…} }`.
+- Dựng: `node rm.mjs <thư mục> out` (giống CI: `npm ci --ignore-scripts`, Chromium headless shell của Playwright, H.264 yuv420p BT.709) rồi `node qa.mjs`.
+  Đẩy thư mục (không kèm `node_modules/`) vào `jobs/<id>/` → Actions dựng lên Release.
+- Lỗi: `E_RM_NO_LOCK` (thiếu/lệch lockfile), `E_RM_VERSION` (ghim lỏng / lệch bản), `E_RM_NO_COMPOSITION` (sai id — thông báo kể id có thật), `E_RM_CONFIG`, `E_RM_INSTALL` (`npm ci` lỗi / thiếu CLI), `E_RM_NO_CHROME`, `E_RM_RENDER`, `E_RM_TIMEOUT` (quá `RM_TIMEOUT`, mặc định 1800 s).
+- Dựng lại y hệt: chỉ tính từ `useCurrentFrame()`, `random(seed)` thay `Math.random`, không `Date`, không trạng thái mang qua khung; `@remotion/three` lái bằng frame, không bằng delta `useFrame`.
+  Không có TTS/phụ đề tự động của es-render: giọng đọc là file trong `public/` (`<Audio>`).
 
 ## 2. Luôn kiểm tra trước khi giao
 

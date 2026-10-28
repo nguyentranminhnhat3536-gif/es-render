@@ -1,4 +1,5 @@
-// els.mjs — phần tử mới "dotlottie" (.lottie / Lottie JSON qua ThorVG wasm: theme, slot, segment) và "rive" (.riv, state machine + inputs theo mốc).
+// els.mjs — phần tử mới "dotlottie" (.lottie / Lottie JSON qua ThorVG wasm: theme, slot, segment), "rive" (.riv, state machine + inputs theo mốc)
+// và "3d" (bundle es3d: React Three Fiber + drei + rapier + postprocessing — trường và mã trang ở el3d.mjs).
 // Trước TTS, mỗi phần tử được đổi thành một phần tử "html" thường (canvas + script) có "libs" → vị trí, start/duration, fade, keyframes,
 // animation, z-index… của render.mjs dùng y nguyên. Job không có hai kiểu này: expand() không đụng tới gì (trả null).
 //   { "type": "dotlottie", "src": "<id>/logo.lottie", "animation-id", "theme", "slots": { "bg_color": "#E50914", "size": 40 },
@@ -12,8 +13,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL, fileURLToPath } from 'node:url';
+import * as E3 from './el3d.mjs';
 
-export const TYPES = ['dotlottie', 'rive'];
+export const TYPES = ['dotlottie', 'rive', E3.TYPE];
 // tên tính năng cho `node render.mjs --features` (cùng "anim" của anim.mjs) — es-editor dò engine trước khi dùng
 export const FEATURES = [...TYPES, 'lib:anime4', 'lib:motion', 'anim-contract'];
 export const MAX_ASSET = 8 * 1024 * 1024; export const MAX_JOB = 24 * 1024 * 1024;
@@ -29,6 +31,7 @@ export const isEl = (e) => !!e && TYPES.includes(e.type);
 
 // kiểm tra một phần tử (thuần) → { errors: [{code,msg}], warnings }
 export function validate(e) {
+  if (e.type === E3.TYPE) return E3.validate(e);
   const errors = []; const warnings = []; const E = (c, m) => errors.push({ code: c, msg: m });
   const t = e.type;
   if (typeof e.src !== 'string' || !e.src.trim()) E('E_EL_SRC_MISSING', t + ': cần "src" (file ' + (t === 'rive' ? '.riv' : '.lottie hoặc .json') + ')');
@@ -65,8 +68,18 @@ function resolveFile(src, o) {
   if (/^file:/i.test(s)) { try { cands = [fileURLToPath(s)]; } catch (x) { return null; } }
   else if (path.isAbsolute(s)) cands = [s];
   else cands = [...new Set([o.jobDir, o.cwd].filter(Boolean).map((d) => path.resolve(d, s)))];
-  return cands.find((f) => fs.existsSync(f) && fs.statSync(f).isFile()) || null;
+  const f = cands.find((x) => fs.existsSync(x) && fs.statSync(x).isFile()) || null;
+  // repo công khai: trên CI (GITHUB_ACTIONS, hoặc ES_CONTAIN_FILES=1) file cục bộ phải nằm trong thư mục job hoặc thư mục đang chạy (repo) —
+  // không nhúng file bất kỳ của máy chạy (đường dẫn tuyệt đối, file:, ../) vào video công khai. ES_CONTAIN_FILES=0 để tắt.
+  if (f && containFiles()) {
+    const real = fs.realpathSync(f);
+    const inside = [o.jobDir, o.cwd].filter(Boolean).some((d) => { let r; try { r = path.relative(fs.realpathSync(d), real); } catch (x) { return false; } return r && !r.startsWith('..') && !path.isAbsolute(r); });
+    if (!inside) return { outside: f };
+  }
+  return f;
 }
+const containFiles = () => (process.env.ES_CONTAIN_FILES ? process.env.ES_CONTAIN_FILES === '1' : process.env.GITHUB_ACTIONS === 'true');
+const outsideMsg = (src) => 'E_EL_SRC_OUTSIDE: "' + short(src) + '" nằm ngoài thư mục job / repo (trên CI chỉ nhận file trong repo; ES_CONTAIN_FILES=0 để tắt khi chạy máy riêng)';
 const hexColor = (v) => { const m = typeof v === 'string' && v.trim().match(/^#?([0-9a-f]{6})([0-9a-f]{2})?$/i); if (!m) return null; const h = m[1]; const c = [0, 2, 4].map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) / 255 * 1e4) / 1e4); return [...c, m[2] ? Math.round(parseInt(m[2], 16) / 255 * 1e4) / 1e4 : 1]; };
 
 // mã chạy trong trang (chuỗi; C = cấu hình của phần tử). Mỗi phần tử đẩy một promise vào ES.wait ngay khi script chạy.
@@ -149,12 +162,14 @@ export async function expand(scenes, ctx = {}) {
     for (const x of v.errors) errors.push(where + ': ' + x.code + ': ' + x.msg);
     for (const x of v.warnings) log(where + ':', x.code + ':', x.msg);
     if (v.errors.length) continue;
+    if (e.type === E3.TYPE) { const r = await expand3d(s, e, k, where, { ...ctx, jobDir, cwd, W, H, errors, assets, add: (n) => { total += n; return total; }, dl: () => dl++ }); if (r) s.elements[k] = r; continue; }
     let file;
     if (/^https?:/i.test(e.src)) {
       if (!ctx.download) { errors.push(where + ': E_EL_SRC_REMOTE: không tải được ' + short(e.src)); continue; }
       file = path.join(work, 'el-dl' + dl++ + path.extname(e.src.split('?')[0]));
       try { await ctx.download(e.src, file, 4, MAX_ASSET); } catch (x) { errors.push(where + ': ' + (/^E_ASSET_TOO_BIG/.test(x.message) ? '' : 'E_EL_SRC_NOT_FOUND: ') + x.message); continue; }
     } else file = resolveFile(e.src, { jobDir, cwd });
+    if (file && file.outside) { errors.push(where + ': ' + outsideMsg(e.src)); continue; }
     if (!file) { errors.push(where + ': E_EL_SRC_NOT_FOUND: "' + short(e.src) + '" không thấy (tìm theo thư mục file job, rồi thư mục đang chạy)'); continue; }
     const size = fs.statSync(file).size; // kiểm tra cỡ trước khi đọc
     if (size > MAX_ASSET) { errors.push(where + ': E_ASSET_TOO_BIG: ' + short(e.src) + ' ' + (size / 1048576).toFixed(1) + ' MB > 8 MB'); continue; }
@@ -199,6 +214,58 @@ export async function expand(scenes, ctx = {}) {
     s.elements[k] = out;
   }
   if (errors.length) throw new Error(errors.join('\n'));
+  // ước lượng thời gian dựng 3D (CPU, không giảm theo RENDER_CONCURRENCY — đo 3 và 1 như nhau): giây × fps × giây/khung theo cỡ phần tử
+  const fps = Number(ctx.FPS || process.env.RENDER_FPS || 30) || 30; let d3 = 0; let est = 0;
+  for (const x of list.filter((y) => y.e.type === E3.TYPE)) {
+    const d = num(x.e.duration, 0) || num(x.s.duration, 0) || 0; d3 += d;
+    est += d * fps * E3.frameCost(Math.round(num(x.e.width, W)), Math.round(num(x.e.height, H)));
+  }
+  const mins = est / 60;
+  if (d3 > 40 || mins > 15) log('el', 'W_3D_SLOW:', d3.toFixed(1) + ' s cảnh 3D trong job, ước ~' + Math.round(mins) + ' phút dựng — SwiftShader (CPU) mất ~1,5–3 s mỗi khung 1080×1920 có bloom (~0,3 s ở 270×480)'
+    + (mins > 80 ? '; GẦN HẠN 120 PHÚT của job CI → rút ngắn cảnh 3D, giảm cỡ phần tử hoặc "aa": 0' : '; cân nhắc rút ngắn hoặc giảm cỡ phần tử'));
   log('el', list.length, 'element(s):', [...new Set(list.map((x) => x.e.type))].join(', '), '|', assets.size, 'asset(s),', (total / 1024).toFixed(0) + ' KB');
   return { elements: list.length, assets: assets.size, bytes: total };
+}
+
+// "3d": 0–2 file (model .glb, image) → asset-*.js như dotlottie / rive; cấu hình chuẩn hoá ở el3d.mjs; html = canvas + script, libs ["es3d"]
+async function expand3d(s, e, k, where, o) {
+  const { work, W, H, errors, assets, log = () => {} } = o; const sh = {}; let bad = '';
+  for (const key of ['model', 'image']) {
+    if (typeof e[key] !== 'string') continue;
+    let file;
+    if (/^https?:/i.test(e[key])) {
+      if (!o.download) { errors.push(where + ': E_EL_SRC_REMOTE: không tải được ' + short(e[key])); return null; }
+      file = path.join(work, 'el-dl' + o.dl() + path.extname(e[key].split('?')[0]));
+      try { await o.download(e[key], file, 4, MAX_ASSET); } catch (x) { errors.push(where + ': ' + (/^E_ASSET_TOO_BIG/.test(x.message) ? '' : 'E_EL_SRC_NOT_FOUND: ') + x.message); return null; }
+    } else file = resolveFile(e[key], o);
+    if (file && file.outside) { errors.push(where + ': ' + outsideMsg(e[key])); return null; }
+    if (!file) { errors.push(where + ': E_EL_SRC_NOT_FOUND: ' + key + ' "' + short(e[key]) + '" không thấy (tìm theo thư mục file job, rồi thư mục đang chạy)'); return null; }
+    const size = fs.statSync(file).size;
+    if (size > MAX_ASSET) { errors.push(where + ': E_ASSET_TOO_BIG: ' + short(e[key]) + ' ' + (size / 1048576).toFixed(1) + ' MB > 8 MB'); return null; }
+    const buf = fs.readFileSync(file); const sha = crypto.createHash('sha256').update(buf).digest('hex');
+    // kiểm tra trong Node: .glb tự chứa, không nén; ảnh png / jpg / webp thật
+    const msg = key === 'model' ? E3.checkGlb(buf) : E3.imageType(buf) ? null : 'không phải ảnh png / jpg / webp hợp lệ';
+    if (msg && /^E_3D_UNSUPPORTED/.test(msg)) { errors.push(where + ': ' + msg.replace(/^E_3D_UNSUPPORTED: /, 'E_3D_UNSUPPORTED: ' + short(path.basename(file), 60) + ': ')); return null; }
+    if (msg) { if ((e['on-error'] || 'fail') !== 'hide') { errors.push(where + ': E_3D_LOAD: ' + short(path.basename(file), 60) + ': ' + msg); return null; } bad = bad || msg; continue; }
+    if (!assets.has(sha)) {
+      if (o.add(buf.length) > MAX_JOB) { errors.push(where + ': E_ASSET_TOO_BIG: tổng file của phần tử mới trong job > 24 MB'); return null; }
+      const af = path.join(work, 'asset-' + sha.slice(0, 8) + '.js');
+      fs.writeFileSync(af, '(window.__esAsset||(window.__esAsset={}))["' + sha.slice(0, 8) + '"]="' + buf.toString('base64') + '"');
+      assets.set(sha, af); if (/^https?:/i.test(e[key])) log('el', '3d', short(e[key]), 'sha256', sha);
+    }
+    sh[key] = { sha, type: key === 'image' ? E3.imageType(buf) : 'model/gltf-binary' };
+  }
+  const w = Math.round(num(e.width, W)); const h = Math.round(num(e.height, H)); const st = num(e.start, 0); const du = num(e.duration, 0); const speed = num(e.speed, 1);
+  const eid = 'e' + k; const preset = e.preset || 'product-hero';
+  const spec = E3.spec(e, { w, h, D: (du > 0 ? du : num(s.duration, 4) - st || 4) * speed,
+    assets: { model: sh.model ? sh.model.sha.slice(0, 8) : '', image: sh.image ? sh.image.sha.slice(0, 8) : '', imageType: sh.image ? sh.image.type : '' } });
+  const C = { id: eid, label: '3d ' + preset, st, end: du > 0 ? st + du : 1e9, speed, timeout: num(e.timeout, E3.TIMEOUT), policy: e['on-error'] || 'fail', spec, ...(bad ? { bad } : {}) };
+  const html = '<canvas id="' + eid + 'c" width="' + w + '" height="' + h + '" style="display:block;width:100%;height:100%"></canvas>'
+    + Object.values(sh).map((a) => '<script src="' + pathToFileURL(assets.get(a.sha)).href + '"></script>').join('')
+    + '<script>(()=>{const C=' + JSON.stringify(C).replace(/</g, '\\u003c') + ';(window.__esEl||(window.__esEl={}))[C.id]=1;' + BOOT + E3.JS + '})()</script>'
+    + '<script>if(!(window.__esEl&&window.__esEl["' + eid + '"]))ES.wait.push(Promise.reject(new Error("E_EL_SCRIPT: 3d ' + eid + ': script của phần tử không chạy")))</script>';
+  const out = { type: 'html', html, libs: [...new Set([...(Array.isArray(e.libs) ? e.libs : []), 'es3d'])], x: num(e.x, 0), y: num(e.y, 0), width: w, height: h };
+  for (const f of ['start', 'duration', 'z-index', 'fade-in', 'fade-out', 'keyframes', 'rotate', 'zoom', 'comment', 'animation']) if (e[f] !== undefined) out[f] = e[f];
+  out._el = { type: '3d', preset, model: e.model, image: e.image, sha: Object.values(sh).map((a) => a.sha) };
+  return out;
 }

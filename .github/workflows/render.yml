@@ -5,6 +5,8 @@ name: render
 # Dự án HyperFrames: đẩy cả thư mục jobs/<id>/ (có index.html, tạo bằng `npx hyperframes init`) → dựng bằng hf.mjs,
 # thư mục được giữ lại để sửa tiếp và đẩy lại.
 # Dự án fframes (Rust): thư mục jobs/<id>/ có Cargo.toml (không có index.html, tạo bằng `cargo fframes new`) → dựng bằng ff.mjs.
+# Dự án Remotion: thư mục jobs/<id>/ có package.json với dependency "remotion" + package-lock.json (không có index.html / Cargo.toml)
+# → dựng bằng rm.mjs. Remotion có giấy phép riêng (miễn phí cho cá nhân, công ty ≤ 3 người, phi lợi nhuận) — xem README.
 on:
   push:
     branches: [main]
@@ -12,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: 'Đường dẫn job, vd jobs/ES-031-20261019.json, thư mục HyperFrames jobs/intro-01 hoặc thư mục fframes (có Cargo.toml)'
+        description: 'Đường dẫn job, vd jobs/ES-031-20261019.json, thư mục HyperFrames jobs/intro-01, thư mục fframes (có Cargo.toml) hoặc dự án Remotion (package.json có remotion)'
         required: true
       format:
         description: 'Chỉ cho dự án fframes: portrait (9:16) hoặc landscape (16:9) nếu dự án có feature đó; để trống = theo dự án'
@@ -42,10 +44,11 @@ jobs:
         id: find
         run: |
           if [ -n "${{ github.event.inputs.job }}" ]; then
-            IN="${{ github.event.inputs.job }}"; IN="${IN%/}"; FF=""
+            IN="${{ github.event.inputs.job }}"; IN="${IN%/}"; FF=""; RM=""
             if [ -d "$IN" ]; then
               LIST=""; HF="$IN"
               if [ -f "$IN/Cargo.toml" ] && [ ! -f "$IN/index.html" ]; then HF=""; FF="$IN"; fi
+              if [ ! -f "$IN/index.html" ] && [ ! -f "$IN/Cargo.toml" ] && [ -f "$IN/package.json" ] && jq -e '.dependencies.remotion' "$IN/package.json" > /dev/null 2>&1; then HF=""; RM="$IN"; fi
             else LIST="$IN"; HF=""; fi
           else
             # job ES: jobs/<id>.json ngay trong jobs/ (không lấy hyperframes.json, package.json… trong thư mục dự án)
@@ -54,13 +57,16 @@ jobs:
             HF=$(git diff --name-only --diff-filter=AMR HEAD~1 HEAD -- jobs | grep -E '^jobs/[^/]+/' | cut -d/ -f1-2 | sort -u | while read -r d; do [ -f "$d/index.html" ] && echo "$d"; done | tr '\n' ' ') || true
             # dự án fframes: có Cargo.toml, không có index.html (bỏ qua thư mục chỉ bị xoá)
             FF=$(git diff --name-only --diff-filter=AMR HEAD~1 HEAD -- jobs | grep -E '^jobs/[^/]+/' | cut -d/ -f1-2 | sort -u | while read -r d; do [ -f "$d/Cargo.toml" ] && [ ! -f "$d/index.html" ] && echo "$d"; done | tr '\n' ' ') || true
+            # dự án Remotion: package.json có dependency "remotion", không có index.html / Cargo.toml
+            RM=$(git diff --name-only --diff-filter=AMR HEAD~1 HEAD -- jobs | grep -E '^jobs/[^/]+/' | cut -d/ -f1-2 | sort -u | while read -r d; do [ ! -f "$d/index.html" ] && [ ! -f "$d/Cargo.toml" ] && [ -f "$d/package.json" ] && jq -e '.dependencies.remotion' "$d/package.json" > /dev/null 2>&1 && echo "$d"; done | tr '\n' ' ') || true
           fi
           echo "list=$LIST" >> "$GITHUB_OUTPUT"
           echo "hf=$HF" >> "$GITHUB_OUTPUT"
           echo "ff=$FF" >> "$GITHUB_OUTPUT"
-          echo "web=$([ -n "$LIST$HF" ] && echo 1)" >> "$GITHUB_OUTPUT"
-          echo "any=$([ -n "$LIST$HF$FF" ] && echo 1)" >> "$GITHUB_OUTPUT"
-          echo "Jobs: $LIST | HyperFrames: $HF | fframes: $FF"
+          echo "rm=$RM" >> "$GITHUB_OUTPUT"
+          echo "web=$([ -n "$LIST$HF$RM" ] && echo 1)" >> "$GITHUB_OUTPUT"
+          echo "any=$([ -n "$LIST$HF$FF$RM" ] && echo 1)" >> "$GITHUB_OUTPUT"
+          echo "Jobs: $LIST | HyperFrames: $HF | fframes: $FF | Remotion: $RM"
 
       - uses: actions/setup-node@v4
         if: steps.find.outputs.any == '1'
@@ -101,6 +107,37 @@ jobs:
             echo "::group::HyperFrames $d"
             id=$(basename "$d")
             node hf.mjs "$d" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $d"
+            echo "::endgroup::"
+          done
+
+      # Remotion: chỉ chạy khi có dự án Remotion. rm.mjs `npm ci --ignore-scripts` trong từng dự án (node_modules ~350 MB, tải ~95 MB, ~10 s).
+      # Chỉ cache ~/.npm (gói tải về), không cache node_modules: thư mục dự án giữ lại sau khi dựng, nên khoá theo mọi lockfile trong jobs/
+      # sẽ trượt ở mỗi dự án mới và mỗi lần lưu thêm ~350 MB vào cache 10 GB của repo. Khoá = lockfile của các dự án đang dựng; restore-keys
+      # lấy bản gần nhất khi khoá trượt (cùng bản Remotion → gần như mọi gói đã có). Chrome = Chromium headless shell của Playwright (đã cài ở trên).
+      - name: Khoá cache npm (Remotion)
+        id: rmkey
+        if: steps.find.outputs.rm != ''
+        run: |
+          h=$(for d in ${{ steps.find.outputs.rm }}; do sha256sum "$d/package-lock.json" 2>/dev/null; done | awk '{print $1}' | sort -u | sha256sum | cut -c1-16)
+          echo "key=$h" >> "$GITHUB_OUTPUT"
+      - name: Lấy cache npm (Remotion)
+        if: steps.find.outputs.rm != ''
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: remotion-npm-${{ runner.os }}-node22-${{ steps.rmkey.outputs.key }}
+          restore-keys: |
+            remotion-npm-${{ runner.os }}-node22-
+
+      - name: Dựng dự án Remotion
+        if: steps.find.outputs.rm != ''
+        timeout-minutes: 45
+        run: |
+          mkdir -p out
+          for d in ${{ steps.find.outputs.rm }}; do
+            echo "::group::Remotion $d"
+            id=$(basename "$d")
+            node rm.mjs "$d" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $d"
             echo "::endgroup::"
           done
 
@@ -172,7 +209,7 @@ jobs:
           TAG="videos-$(date -u +%Y-%m)"
           gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes "Video ETHAN STUDIO dựng tự động" > /dev/null
           mkdir -p results
-          for j in ${{ steps.find.outputs.list }} ${{ steps.find.outputs.hf }} ${{ steps.find.outputs.ff }}; do
+          for j in ${{ steps.find.outputs.list }} ${{ steps.find.outputs.hf }} ${{ steps.find.outputs.ff }} ${{ steps.find.outputs.rm }}; do
             id=$(basename "$j" .json)
             r="out/$id.result.json"
             if [ ! -f "$r" ]; then echo "{\"id\":\"$id\",\"status\":\"error\",\"message\":\"render không tạo kết quả (xem log Actions)\"}" > "$r"; fi
@@ -183,7 +220,7 @@ jobs:
             else
               jq --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '. + {run: $run}' "$r" > "results/$id.json"
             fi
-            if [ -f "$j" ]; then git rm -q --cached "$j" 2>/dev/null || true; rm -f "$j"; fi # thư mục HyperFrames / fframes giữ lại
+            if [ -f "$j" ]; then git rm -q --cached "$j" 2>/dev/null || true; rm -f "$j"; fi # thư mục HyperFrames / fframes / Remotion giữ lại
           done
           git config user.name "es-render-bot"
           git config user.email "es-render-bot@users.noreply.github.com"

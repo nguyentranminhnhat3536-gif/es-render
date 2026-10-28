@@ -183,7 +183,7 @@ test('sceneError: anim errors get scene + element + page, others get the scene',
 test('render.mjs wiring: flags keep --disable-web-security, VCLOCK has the epoch hook, --features', () => {
   assert.ok(FLAGS.includes('--disable-web-security'), FLAGS.join(' '));
   assert.ok(VCLOCK.includes('const D0=Date.now()'));
-  assert.equal(execFileSync(process.execPath, [path.join(REPO, 'render.mjs'), '--features']).toString().trim(), '{"features":["anim","dotlottie","rive","lib:anime4","lib:motion","anim-contract"]}');
+  assert.equal(execFileSync(process.execPath, [path.join(REPO, 'render.mjs'), '--features']).toString().trim(), '{"features":["anim","dotlottie","rive","3d","lib:anime4","lib:motion","anim-contract"]}');
 });
 
 test('T6: the example page passes motion2code check_anim.py (static)', { skip: spawnSync('python3', ['--version']).status !== 0 && 'python3 missing' }, () => {

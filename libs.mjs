@@ -1,4 +1,5 @@
-// libs.mjs — thư viện mới, chỉ nạp khi phần tử khai báo trong "libs": anime4 (anime.js v4), motion (Motion, vanilla), dotlottie, rive.
+// libs.mjs — thư viện mới, chỉ nạp khi phần tử khai báo trong "libs": anime4 (anime.js v4), motion (Motion, vanilla), dotlottie, rive,
+// es3d (vendor/es3d.min.js — bundle dựng sẵn cho phần tử "3d", xem vendor-src/es3d).
 // Khoá cũ (gsap, anime = v3, lottie, three, plugin GSAP) vẫn do render.mjs lo y như trước: cảnh không xin khoá mới → HTML không đổi một byte.
 // Cảnh có khoá mới thì thêm:
 //   - PRE (trong <head>, trước thư viện mới): ES.wait / ES.busy, Date đóng băng (Date.now = EPOCH + giây ảo, new Date() không đối số cũng vậy)
@@ -17,14 +18,17 @@ export const EXTRA = {
   motion: { file: 'motion/dist/motion.js', pkg: 'motion' },
   dotlottie: { file: '@lottiefiles/dotlottie-web/dist/index.js', pkg: '@lottiefiles/dotlottie-web', esm: true },
   rive: { file: '@rive-app/canvas-advanced-single/canvas_advanced_single.mjs', pkg: '@rive-app/canvas-advanced-single', esm: true },
+  // bundle IIFE đã commit (không nằm trong node_modules; CI không dựng lại): window.ES3D
+  es3d: { vendor: 'vendor/es3d.min.js', versions: 'vendor/es3d/VERSIONS.json' },
 };
 // tên gọi khác (đã chuẩn hoá: chữ thường, bỏ ký tự không phải chữ/số như libKey của render.mjs)
 export const ALIAS = { animev4: 'anime4', animejs4: 'anime4', animejsv4: 'anime4', framermotion: 'motion', motionjs: 'motion', motiondev: 'motion',
-  lottiedot: 'dotlottie', dotlottieweb: 'dotlottie', riveapp: 'rive', rivecanvas: 'rive' };
+  lottiedot: 'dotlottie', dotlottieweb: 'dotlottie', riveapp: 'rive', rivecanvas: 'rive',
+  r3f: 'es3d', reactthreefiber: 'es3d', threefiber: 'es3d' };
 export const key = (k) => (EXTRA[k] ? k : ALIAS[k] || k);
 export const isExtra = (k) => !!EXTRA[k];
-export const fileOf = (k) => path.join(NM, EXTRA[k].file);
-export function version(k) { try { return JSON.parse(fs.readFileSync(path.join(NM, EXTRA[k].pkg, 'package.json'), 'utf8')).version; } catch (e) { return '?'; } }
+export const fileOf = (k) => (EXTRA[k].vendor ? path.join(HERE, EXTRA[k].vendor) : path.join(NM, EXTRA[k].file));
+export function version(k) { try { return EXTRA[k].vendor ? JSON.parse(fs.readFileSync(path.join(HERE, EXTRA[k].versions), 'utf8')).es3d : JSON.parse(fs.readFileSync(path.join(NM, EXTRA[k].pkg, 'package.json'), 'utf8')).version; } catch (e) { return '?'; } }
 
 export const PRE = '<script>(()=>{const E=window.ES;E.wait=E.wait||[];E.busy=E.busy||[];E.waitMs=E.waitMs||0;E._libs=E._libs||{};E.lib=(k)=>E._libs[k];'
   + 'const RD=Date,T0=' + EPOCH + ';RD.now=()=>T0+Math.round(performance.now());'
@@ -50,12 +54,14 @@ const TAG = {
     + esm('dotlottie', 'import { DotLottie } from "' + u + '";', 'const b = Uint8Array.from(atob(window.__esWasm.dotlottie), (c) => c.charCodeAt(0)); delete window.__esWasm.dotlottie;'
       + ' DotLottie.setWasmUrl(URL.createObjectURL(new Blob([b], { type: "application/wasm" }))); window.DotLottie = DotLottie; done(DotLottie);'),
   // Rive (bản canvas "single": wasm nằm sẵn trong .mjs) → ES.lib("rive") = runtime đã khởi tạo; tải file luôn với enableRiveAssetCDN = false
+  // es3d: script thường (IIFE, three 0.186 bên trong, không đè window.THREE 0.160)
+  es3d: (u) => '<script src="' + u + '"></script><script>if(!window.ES3D)ES.wait.push(Promise.reject(new Error("E_LIB_MISSING es3d: vendor/es3d.min.js không chạy")))</script>',
   rive: (u) => esm('rive', 'import RiveCanvas from "' + u + '";', 'window.RiveCanvas = RiveCanvas; RiveCanvas().then(done, (e) => window.__esLib_rive[1](e));'),
 };
 // import phải ở cấp ngoài cùng của module; import hỏng → module không chạy → ready() báo E_EL_TIMEOUT
 const esm = (k, imp, body) => '<script>ES._libs.' + k + '=new Promise((ok,no)=>{window.__esLib_' + k + '=[ok,no]});ES.wait.push(ES._libs.' + k + ')</script>'
   + '<script type="module">' + imp + ' const done = (x) => window.__esLib_' + k + '[0](x); try { ' + body + ' } catch (e) { window.__esLib_' + k + '[1](e) }</script>';
-const ORDER = ['anime4', 'motion', 'dotlottie', 'rive'];
+const ORDER = ['anime4', 'motion', 'dotlottie', 'rive', 'es3d'];
 // wasm → file .js nhỏ trong work/ (window.__esWasm[k] = base64), nạp bằng <script> thường: fetch(file://) bị Chromium chặn
 function wasmJs(o, k, rel) {
   const f = path.join(NM, rel); if (!fs.existsSync(f)) throw new Error('E_LIB_MISSING ' + k + ': ' + rel + ' không có trong node_modules (npm ci)');
@@ -66,7 +72,7 @@ function wasmJs(o, k, rel) {
 // o = { work } (thư mục tạm của job: file wasm-*.js)
 export function tags(keys, o = {}) {
   const ks = ORDER.filter((k) => keys.includes(k)); if (!ks.length) return '';
-  return PRE + ks.map((k) => { const f = fileOf(k); if (!fs.existsSync(f)) throw new Error('E_LIB_MISSING ' + k + ': ' + EXTRA[k].file + ' không có trong node_modules (npm ci)'); return TAG[k](pathToFileURL(f).href, o); }).join('');
+  return PRE + ks.map((k) => { const f = fileOf(k); if (!fs.existsSync(f)) throw new Error('E_LIB_MISSING ' + k + ': ' + (EXTRA[k].vendor ? EXTRA[k].vendor + ' không có (bundle phải được commit; dựng: vendor-src/es3d)' : EXTRA[k].file + ' không có trong node_modules (npm ci)')); return TAG[k](pathToFileURL(f).href, o); }).join('');
 }
 // cuối PAGE_JS khi cảnh có khoá mới: cổng chờ ES.wait (hạn = timeout lớn nhất của phần tử, mặc định 20 s) + seek chờ ES.busy
 export const WAIT_JS = `
