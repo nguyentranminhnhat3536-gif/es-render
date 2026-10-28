@@ -1,0 +1,125 @@
+{
+  "id": "ES-010-20261028-184347",
+  "status": "done",
+  "duration": 128.2,
+  "width": 1080,
+  "height": 1920,
+  "file": "ES-010-20261028-184347.mp4",
+  "render_seconds": 694,
+  "creative": "bold",
+  "scenes": [
+    {
+      "t": 0,
+      "d": 6.867
+    },
+    {
+      "t": 6.567,
+      "d": 9.3,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 15.567,
+      "d": 8.533,
+      "trans": "whip",
+      "td": 0.3
+    },
+    {
+      "t": 23.8,
+      "d": 7.733,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 31.233,
+      "d": 7.667,
+      "trans": "smoothleft",
+      "td": 0.3
+    },
+    {
+      "t": 38.6,
+      "d": 7.9,
+      "trans": "whip-up",
+      "td": 0.3
+    },
+    {
+      "t": 46.2,
+      "d": 8.1,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 54,
+      "d": 8.167,
+      "trans": "coverup",
+      "td": 0.3
+    },
+    {
+      "t": 61.867,
+      "d": 7.667,
+      "trans": "smoothleft",
+      "td": 0.3
+    },
+    {
+      "t": 69.233,
+      "d": 8.9,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 77.833,
+      "d": 8.933,
+      "trans": "whip",
+      "td": 0.3
+    },
+    {
+      "t": 86.467,
+      "d": 8.567,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 94.733,
+      "d": 8.633,
+      "trans": "dissolve",
+      "td": 0.3
+    },
+    {
+      "t": 103.067,
+      "d": 8.233,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 111,
+      "d": 8.267,
+      "trans": "hblur",
+      "td": 0.3
+    },
+    {
+      "t": 118.967,
+      "d": 3.433,
+      "trans": "circleopen",
+      "td": 0.3
+    },
+    {
+      "t": 122.2,
+      "d": 6,
+      "trans": "circleclose",
+      "td": 0.2
+    }
+  ],
+  "qa": {
+    "pass": true,
+    "score": 9,
+    "lufs": -14.4,
+    "issues": [
+      {
+        "level": "warn",
+        "msg": "đỉnh âm -0.3 dBFS, có thể vỡ tiếng"
+      }
+    ]
+  },
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-010-20261028-184347.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/40682204998"
+}
