@@ -102,10 +102,15 @@ const hasAudio = (f) => { try { return !!execFileSync(FFPROBE, ['-v', 'error', '
 const W = num(movie.width, 1080); const H = num(movie.height, 1920);
 const scenes = (movie.scenes || []).map((s, i) => ({ ...s, i, elements: s.elements || [] }));
 const voices = [];
+const PRESYNTH = process.env.ES_PRESYNTH_DIR ? path.resolve(process.env.ES_PRESYNTH_DIR) : '';
 scenes.forEach((s) => s.elements.forEach((e, k) => {
   if (e.type === 'voice' && String(e.text || '').trim()) {
     const sp = num(e.speed, 1); const pct = Math.round((sp - 1) * 100);
-    e._out = path.join(work, 'v' + s.i + '_' + k);
+    // giọng đã đọc sẵn (spec/run.mjs): src = file:///…/x.mp3 cạnh x.words.json → không gọi edge-tts lần nữa, mốc thời gian đúng như lúc compile.
+    // Chỉ nhận file nằm trong ES_PRESYNTH_DIR (thư mục làm việc do spec/run.mjs đặt) — job thường đẩy lên jobs/ vẫn đọc TTS như cũ
+    const pre = PRESYNTH && /^file:\/\//.test(String(e.src || '')) ? path.resolve(decodeURIComponent(new URL(e.src).pathname)) : '';
+    if (pre && pre.startsWith(PRESYNTH + path.sep) && /\.mp3$/i.test(pre) && fs.existsSync(pre) && fs.existsSync(pre.slice(0, -4) + '.words.json')) { e._out = pre.slice(0, -4); e._rate = pct; return; }
+    e._out = path.join(work, 'v' + s.i + '_' + k); e._rate = pct;
     voices.push({ text: String(e.text), voice: e.voice || 'en-US-AndrewMultilingualNeural', rate: (pct >= 0 ? '+' : '') + pct + '%', out: e._out });
   }
 }));
@@ -171,7 +176,11 @@ async function main() {
   const dur = probeDur(out);
   const res = { id, status: 'done', duration: r3(dur), width: W, height: H, file: path.basename(out), render_seconds: Math.round((Date.now() - t0) / 1000), creative: CR.level,
     scenes: scenes.map((s) => ({ t: r3(s.T), d: r3(s.D), ...(s.trans ? { trans: s.trans.style, td: r3(s.trans.d) } : {}) })), // mốc nối cảnh cho QA
-    ...ANIM.result(scenes) }; // anims: [...] chỉ khi job có phần tử anim
+    ...ANIM.result(scenes), // anims: [...] chỉ khi job có phần tử anim
+    // lời đọc đo được (giọng TTS + lời của footage): qa-standard.mjs (chuẩn es-short/1) đọc hook xong lúc nào
+    voice_track: scenes.flatMap((s) => s.elements.filter((e) => e._words && e._words.length).map((e) => { const st = s.T + num(e.start, 0); const lw = e._words[e._words.length - 1];
+      return { scene: s.i, start: r3(st + num(e._words[0].t, 0)), end: r3(st + num(lw.t, 0) + num(lw.d, 0)), words: e._words.length, dur: r3(num(e._dur, 0)), ...(e.type === 'voice' ? { voice: e.voice || 'en-US-AndrewMultilingualNeural', rate: num(e._rate, 0) } : { source: true }) }; })),
+    fps: FPS, finished_at: new Date().toISOString() };
   fs.writeFileSync(path.join(outDir, id + '.result.json'), JSON.stringify(res, null, 1));
   log('done', out, res.duration + 's in', res.render_seconds + 's');
 }
@@ -256,7 +265,7 @@ const seedTag = (n) => '<script>Math.random=(()=>{let a=' + (n >>> 0) + ';return
 // → GSAP, Anime.js, Lottie, Three.js… (mọi thứ chạy bằng rAF) khớp tuyệt đối từng khung, dù chụp chậm bao nhiêu
 const VCLOCK = '<script>(()=>{let now=0;const q=[];let id=0;const D0=Date.now();performance.now=()=>now;Date.now=()=>D0+Math.round(now);'
   + 'window.requestAnimationFrame=(cb)=>{q.push([++id,cb]);return id};window.cancelAnimationFrame=(i)=>{const k=q.findIndex((x)=>x[0]===i);if(k>=0)q.splice(k,1)};'
-  + 'window.ES={time:0,onSeek:[]};window.__esTick=(ms)=>{now=ms;window.ES.time=ms/1000;const run=q.splice(0);for(const [,cb] of run){try{cb(now)}catch(e){}}'
+  + 'window.ES={time:0,onSeek:[],ready:[]};window.__esTick=(ms)=>{now=ms;window.ES.time=ms/1000;const run=q.splice(0);for(const [,cb] of run){try{cb(now)}catch(e){}}'
   + 'for(const f of window.ES.onSeek){try{f(ms/1000)}catch(e){}}return run.length+window.ES.onSeek.length}})()</script>';
 function sceneDoc(s, head) {
   const els = []; let html = '';
@@ -369,6 +378,9 @@ window.seek = async (t) => { let sig = ''; const wait = []; for (const e of SPEC
     if (cm.b) document.getElementById('mbg').setAttribute('stdDeviation', cm.b); n.style.filter = cm.b ? 'url(#mb)' : ''; sig += cm.tf + cm.b; }
   await Promise.all(wait); return sig; };
 window.ready = async () => { await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 8000))]);
+  // cổng chờ chung: ES.ready.push(promise | () => promise) — tối đa 10 s rồi dựng tiếp (trang không đẩy gì → không đợi)
+  const rdy = (window.ES && window.ES.ready || []).map((f) => { try { return Promise.resolve(typeof f === 'function' ? f() : f).catch(() => 0); } catch (e) { return 0; } });
+  if (rdy.length) await Promise.race([Promise.all(rdy), new Promise((r) => setTimeout(r, 10000))]);
   await Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; setTimeout(r, 20000); }))));
   // CSS animation (vẽ nét, trôi nền, nhấp nháy…) dừng lại và tua theo thời gian của từng phần tử
   for (const e of SPEC) { const n = document.getElementById(e.id); if (!n) continue; e.anims = n.getAnimations({ subtree: true }); e.anims.forEach((a) => a.pause()); }
@@ -611,6 +623,10 @@ async function fetchFont(family, dir, weight) {
   for (const lic of ['ofl', 'apache', 'ufl']) for (const nm of names) {
     try { await download('https://raw.githubusercontent.com/google/fonts/main/' + lic + '/' + key + '/' + encodeURIComponent(nm), path.join(dir, nm.replace(/[\[\],]/g, '_')), 1); return; } catch (e) { /* thử tên khác */ }
   }
+  // cuối cùng mới tới font kèm repo (assets/fonts, OFL): chỉ khi mạng hỏng cả hai nguồn trên — job cũ có mạng vẫn dùng đúng file như trước
+  try { const own = path.join(path.dirname(new URL(import.meta.url).pathname), 'assets', 'fonts'); const fk = family.replace(/\s+/g, '');
+    const f = fs.existsSync(own) && fs.readdirSync(own).find((x) => x.startsWith(fk + '-' + Math.round(num(weight, 700)) + '.') || x.startsWith(fk + '['));
+    if (f) { fs.copyFileSync(path.join(own, f), path.join(dir, f.replace(/[\[\],]/g, '_'))); log('font từ assets/fonts (mạng lỗi):', f); return; } } catch (e) { /* bỏ qua */ }
   log('font not found, libass dùng font mặc định:', family);
 }
 
@@ -652,7 +668,8 @@ async function mixAudio(out, TOTAL) {
     const mf = await fetchAudio(music.src); args.push('-stream_loop', '-1', '-i', mf);
     const fo = num(music['fade-out'], 1);
     const stops = clips.filter((c) => c.stop).map((c) => "volume=enable='between(t," + r3(Math.max(0, c.peak - 0.45)) + ',' + r3(c.peak) + ")':volume=0.12").join(',');
-    f += '[' + n + ':a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=duration=' + TOTAL + ',asetpts=PTS-STARTPTS,volume=' + num(music.volume, 0.3) + (stops ? ',' + stops : '') + (fo > 0 ? ',afade=t=out:st=' + r3(Math.max(0, TOTAL - fo)) + ':d=' + r3(fo) : '') + '[mus0];';
+    const mseek = Math.max(0, num(music.seek, 0)); // music.seek (tuỳ chọn): nhạc vào thẳng đoạn đã "lên"; 0 → chuỗi lọc y như cũ
+    f += '[' + n + ':a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts=stereo,atrim=' + (mseek > 0 ? 'start=' + r3(mseek) + ':' : '') + 'duration=' + TOTAL + ',asetpts=PTS-STARTPTS,volume=' + num(music.volume, 0.3) + (stops ? ',' + stops : '') + (fo > 0 ? ',afade=t=out:st=' + r3(Math.max(0, TOTAL - fo)) + ':d=' + r3(fo) : '') + '[mus0];';
     n++; hasMus = true;
     // music.duck (tuỳ chọn): { threshold, ratio, attack, release, voice_band } — mặc định đúng như trước (0.025 / 4 / 20 / 400, không lọc dải)
     const dk = music.duck && typeof music.duck === 'object' ? music.duck : {}; const dv = (k, d, lo, hi) => { const v = num(dk[k], d); return Math.min(hi, Math.max(lo, v)); };

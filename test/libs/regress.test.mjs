@@ -14,10 +14,14 @@ import { REPO, FIX, md5, tmpDir } from './lib.mjs';
 const BASE = process.env.BASE_REF || 'd0ec723';
 const D = tmpDir('regress'); const baseDir = path.join(D, 'base');
 const git = (...a) => execFileSync('git', ['-C', REPO, ...a]).toString();
-let HAVE_BASE = true;
+let HAVE_BASE = true; let BASE_HAS_READY = false;
 before(() => {
   fs.mkdirSync(baseDir, { recursive: true });
   try { for (const f of ['render.mjs', 'anim.mjs']) fs.writeFileSync(path.join(baseDir, f), git('show', BASE + ':' + f)); } catch (e) { HAVE_BASE = false; return; }
+  // render.mjs của BASE mới hơn (≥ PR #4) còn import libs.mjs / els.mjs / el3d.mjs và đọc vendor/: lấy đúng bản của BASE nếu có
+  for (const f of ['libs.mjs', 'els.mjs', 'el3d.mjs']) { try { fs.writeFileSync(path.join(baseDir, f), execFileSync('git', ['-C', REPO, 'show', BASE + ':' + f], { stdio: ['ignore', 'pipe', 'ignore'] })); } catch (e) { /* BASE chưa có */ } }
+  BASE_HAS_READY = /onSeek:\[\],ready:\[\]/.test(fs.readFileSync(path.join(baseDir, 'render.mjs'), 'utf8'));
+  for (const d of ['vendor', 'vendor-src']) if (fs.existsSync(path.join(REPO, d))) fs.symlinkSync(path.join(REPO, d), path.join(baseDir, d));
   fs.symlinkSync(path.join(REPO, 'node_modules'), path.join(baseDir, 'node_modules')); fs.symlinkSync(path.join(REPO, 'tts.py'), path.join(baseDir, 'tts.py'));
 });
 let N = 0;
@@ -33,6 +37,13 @@ function run(engineDir, job, env = {}) {
   });
 }
 const amd5 = (mp4) => execFileSync('ffmpeg', ['-v', 'error', '-i', mp4, '-map', '0:a:0', '-f', 'md5', '-']).toString().trim();
+// task 9 thêm vào result: voice_track, fps, finished_at (giờ thật) — chỉ được có thêm ĐÚNG các khoá này, mọi thứ khác phải trùng base
+const ADDED = ['voice_track', 'fps', 'finished_at'];
+const sameResult = (base, cur) => { const extra = Object.keys(cur).filter((k) => !(k in base)); assert.deepEqual(extra.filter((k) => !ADDED.includes(k)), [], 'khoá mới ngoài dự kiến trong result.json');
+  const c = { ...cur }; const b = { ...base }; for (const k of ADDED) if (!(k in base)) delete c[k]; delete c.finished_at; delete b.finished_at; assert.deepEqual(c, b); };
+// task 9 thêm cổng chờ chung ES.ready (khởi tạo ES + 3 dòng trong window.ready, không làm gì khi trang không đẩy gì): bỏ đúng phần đó khỏi HTML mới rồi mới so
+const READY_LINES = /\n  \/\/ cổng chờ chung: ES\.ready[^\n]*\n  const rdy = [^\n]*\n  if \(rdy\.length\)[^\n]*/;
+const unReady = (h) => { assert.ok(h.includes('window.ES={time:0,onSeek:[],ready:[]}') && READY_LINES.test(h), 'HTML mới có ES.ready'); return h.replace('window.ES={time:0,onSeek:[],ready:[]}', 'window.ES={time:0,onSeek:[]}').replace(READY_LINES, ''); };
 const strip = (r) => { const x = { ...r }; delete x.render_seconds; if (x.anims) x.anims = x.anims.map((a) => ({ ...a, ready_ms: 0 })); return x; }; // giờ thật: không so
 async function same(t, name, movie, env) {
   if (!HAVE_BASE) { t.skip('base commit ' + BASE + ' not available'); return; }
@@ -40,8 +51,8 @@ async function same(t, name, movie, env) {
   const [a, b] = await Promise.all([run(baseDir, job, env), run(REPO, job, env)]);
   const ha = md5(a.mp4); const hb = md5(b.mp4); const first = ha.findIndex((h, i) => h !== hb[i]);
   assert.equal(hb.length, ha.length); assert.equal(first, -1, 'first differing frame ' + first);
-  assert.equal(amd5(b.mp4), amd5(a.mp4), 'audio'); assert.deepEqual(strip(b.result), strip(a.result));
-  assert.equal(b.html.length, a.html.length); b.html.forEach((h, i) => assert.equal(h, a.html[i], 'scene ' + i + ' HTML'));
+  assert.equal(amd5(b.mp4), amd5(a.mp4), 'audio'); sameResult(strip(a.result), strip(b.result));
+  assert.equal(b.html.length, a.html.length); b.html.forEach((h, i) => assert.equal(BASE_HAS_READY ? h : unReady(h), a.html[i], 'scene ' + i + ' HTML'));
   assert.ok(!/ libs |^\d\d:\d\d:\d\d el /m.test(b.log), 'no new code path in the log');
   t.diagnostic(name + ': ' + ha.length + ' frames + audio + result.json + ' + a.html.length + ' scene HTML identical to ' + BASE);
 }
