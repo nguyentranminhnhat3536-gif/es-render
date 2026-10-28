@@ -6,7 +6,7 @@ Bộ dựng video miễn phí cho hệ thống ETHAN STUDIO (n8n · ES · 2). Kh
 
 Chạy thử trên máy: `npm ci && pip install edge-tts && node render.mjs jobs/<id>.json out` (`npm ci` cài đúng phiên bản trong `package-lock.json`)
 
-Biến môi trường: `LOUDNORM` (`2pass` = chuẩn hoá 2 lượt cho mọi job), `RENDER_FPS` (30), `RENDER_CONCURRENCY`, `TARGET_LUFS` (-14), `CHROME_PATH`, `FFMPEG`, `PYTHON`, `RENDER_CREATIVE` (bold), `RENDER_LOOK` (none), `RENDER_ANIM_TIMEOUT` (20 s, cổng chờ trang anim), `RENDER_ANIM_GSAP` (`page` = giữ GSAP CDN của trang anim thay vì bản trong `node_modules`). Mỗi video dựng xong được `qa.mjs` kiểm tra (kết quả ở `results/<id>.json` → `qa`).
+Biến môi trường: `LOUDNORM` (`2pass` = chuẩn hoá 2 lượt cho mọi job), `RENDER_FPS` (30), `RENDER_CONCURRENCY`, `TARGET_LUFS` (-14), `CHROME_PATH`, `FFMPEG`, `PYTHON`, `RENDER_CREATIVE` (bold), `RENDER_LOOK` (none), `RENDER_ANIM_TIMEOUT` (20 s, cổng chờ trang anim), `RENDER_ANIM_GSAP` (`page` = giữ GSAP CDN của trang anim thay vì bản trong `node_modules`). Mỗi video dựng xong có ảnh bìa (`cover.mjs`) và được `qa.mjs` kiểm tra (kết quả ở `results/<id>.json` → `qa`, `standard`, `cover_url`). Job `kind: "spec"` (CreativeSpec, chuẩn ES Short 30–60 s, hook ≤ 3 s): xem mục bên dưới.
 
 ## Sáng tạo
 
@@ -103,6 +103,45 @@ Dựng thử trên máy: `node hf.mjs examples/hyperframes-hello out` → `out/h
 Mẹo: `data-motion-blur` (nhoè chuyển động, tuỳ chọn), `npx hyperframes add <block>` (khối có sẵn được chép vào dự án nên dựng lại vẫn y hệt), skill `remotion-to-hyperframes` của plugin để chuyển code Remotion sang HyperFrames. Phần media (TTS, tách nền…) chỉ dùng công cụ miễn phí chạy trên máy, không gọi dịch vụ HeyGen trả phí.
 
 `.claude/settings.json` khai báo sẵn plugin HyperFrames (ghim tag `v0.8.181`, cùng bản với lúc dựng): mở repo này bằng Claude Code trên máy (và tin cậy thư mục) là có skill HyperFrames. Job tự động từ n8n vẫn dùng movie JSON + `render.mjs` như cũ.
+
+## Job CreativeSpec (`kind: "spec"`) — chuẩn ES Short `es-short/1`
+
+Ngoài movie JSON, repo nhận job **CreativeSpec** — kịch bản có cấu trúc (lời đọc, chữ trên hình, bố cục, kiểu hook) thay cho từng khung hình.
+Bộ luật duy nhất là `spec/core.cjs` (**core 1.1.0, giống từng byte bản `editor/spec/core.cjs` của es-editor**; đổi luật = tăng `CORE` ở cả hai repo cùng lúc).
+Ví dụ hợp lệ: `spec/examples/` (`explainer.en.json` + `explainer.vi.json` trích FACTS#1, `list.*.json` không có số liệu); schema đọc được bằng máy: `spec/creative-spec.schema.json` (`node spec/gen-schema.mjs` sinh lại từ core).
+
+```json
+{ "id": "ES-031-20261028-093000", "kind": "spec", "standard": "es-short/1", "core": "1.1.0", "spec_hash": "…",
+  "spec": { …CreativeSpec… }, "meta": { "attempt": 1, "max_attempts": 3, "facts": ["Test shop: 50 reviews → FAQ in 2 minutes"] }, "client": { …card… } }
+```
+
+`render.yml` thấy `kind: "spec"` thì chạy `node spec/run.mjs jobs/<id>.json out` (job khác vẫn đi `render.mjs` y như cũ). Ba cửa:
+
+1. **Kiểm tra lại** bằng chính `core.cjs` (như node n8n đã kiểm), với `meta.facts` — câu có con số phải trích đúng một dòng FACTS; job không mang facts thì coi là `[]`, không bao giờ "chấp nhận mọi FACTS#n".
+2. **Đo giọng thật** (edge-tts, mỗi câu một file) rồi khớp thời gian *trước khi vẽ*: hook nói xong **≤ 3.0 s** (đọc lại riêng câu hook nhanh hơn, tối đa +20 %), tổng **30–60 s** (chỉnh khoảng nghỉ trước, tốc độ sau). Không khớp được → `rejected` kèm số đo.
+3. **Dựng + đo trên MP4 đã xuất**: `spec/compile.mjs` → movie JSON → `render.mjs` (giọng đã đọc sẵn, chỉ nhận trong `ES_PRESYNTH_DIR` của chính run.mjs) → `cover.mjs` → `qa.mjs` + `qa-standard.mjs`.
+
+Chuẩn `es-short/1` (`qa-standard.mjs`): S1 dài 30–60 s · S2 hook nói xong ≤ 3.0 s (+1 khung, từ `voice_track`) · S3 giọng vào ≤ 0.35 s · S4 khung 0 không trống ·
+**S4b tiêu đề hook đọc được ở khung 0** (trong hộp tiêu đề compile báo: ≥ 4 % điểm chữ, tương phản ≥ 3:1, ≥ 60 % chữ còn nguyên chỗ lúc hook nói xong) ·
+S5–S7 chuyển động / cảnh đầu / không đứng hình (cảnh báo) · S8 đủ ảnh bìa · S13 bìa giống khung hook (cảnh báo). Lỗi mức error → không tự đăng.
+
+Kết quả `results/<id>.json` có **`outcome`** — thứ duy nhất n8n đọc: `post` (✅ đăng được) · `review` (👀 đã dựng, người duyệt) · `retry` (🔁 CI từ chối, AI viết lại, còn lượt) · `fail` (❌).
+Kèm `summary_vi`, `hook.voice_end`, `standard`, `qa`, `spec_hash` (n8n bỏ qua kết quả của spec khác cùng id). Exit 75 = lỗi hạ tầng tạm thời → workflow thử lại một lần.
+
+**Ảnh bìa cho mọi video** (`cover.mjs`, chạy sau render.mjs / hf.mjs / ff.mjs / rm.mjs, lỗi bìa không làm hỏng video): job spec có bìa *thiết kế* từ bố cục hook
+(+ bản B từ `cover.alt_title`); video khác lấy khung hình (giây min(2.5, cảnh 1 − 0.2) hoặc nửa độ dài). Ra `out/<id>.cover.jpg` 1080×1920 + `-3x4` (1080×1440) + `-1x1`
+(1080×1080); khung ngang → 16:9 + 1:1. Lên Release cùng video: `cover_url`, `cover_3x4_url`, `cover_1x1_url` và `cover.url*` trong `results/<id>.json`.
+Video cũ cũng có khối `standard` (chỉ báo, `report_only: true`) — không đổi `qa.pass` hay `status`.
+
+Thay đổi trong `render.mjs` đều chỉ *thêm*, job cũ ra từng khung y hệt (`BASE_REF=24edb84 node --test test/libs/regress.test.mjs test/anim/regress.test.mjs`):
+result có thêm `voice_track` / `fps` / `finished_at`; `music.seek` (tuỳ chọn); cổng chờ chung `ES.ready.push(promise)`; font phụ đề trong `assets/fonts/` (OFL) chỉ dùng khi
+Google Fonts **và** kho google/fonts đều không tải được.
+
+n8n: 3 node quy chuẩn (*ES Short · Soạn prompt quy chuẩn*, *ES Short · Kiểm tra CreativeSpec*, *ES Short · Render xong?*) ở `n8n/es2/` — bản dán + bộ sinh thao tác, xem `n8n/es2/README.md`.
+es-editor (`video make`) dùng bộ dựng riêng của nó nhưng cùng `core.cjs` (cùng luật 30–60 s, hook ≤ 3 s).
+
+Thử trên máy: `npm run test:spec` (core, thời gian, compile, bố cục trong Chromium, chuẩn + bìa trên MP4 do ffmpeg tạo, font, giọng đọc sẵn, run.mjs, mô phỏng n8n).
+Dựng trọn một job không cần mạng (~8 phút): `SPEC_FAKE_TTS=1 SPEC_MUSIC_SRC= node spec/run.mjs <job spec> out` (giọng giả là tiếng ồn → QA có thể cảnh báo độ to).
 
 ## Âm thanh: tuỳ chọn mới (mặc định không đổi)
 

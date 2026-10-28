@@ -8,6 +8,7 @@
     "render": "node render.mjs",
     "test": "node --test --test-concurrency=1 test/anim/unit.test.mjs test/anim/page.test.mjs test/libs/unit.test.mjs test/libs/page.test.mjs test/libs/ready.test.mjs test/libs/3d-unit.test.mjs test/libs/3d.test.mjs",
     "test:render": "node --test --test-concurrency=1 test/anim/render.test.mjs test/anim/regress.test.mjs test/libs/regress.test.mjs test/libs/opt.test.mjs test/libs/rive-stress.test.mjs",
+    "test:spec": "node --test --test-concurrency=1 test/spec/*.test.mjs && node test/spec/n8n-sim.mjs && node n8n/es2/build.mjs > /dev/null && git diff --exit-code -- n8n/es2/es2-standard-nodes.json spec/creative-spec.schema.json",
     "test:rm": "node --test --test-concurrency=1 test/rm/rm.test.mjs"
   },
   "dependencies": {
