@@ -1,0 +1,33 @@
+{
+  "id": "ethan-studio",
+  "name": "ETHAN STUDIO",
+  "handles": { "telegram": "t.me/ethanstudiolab", "social": "@ethanstudiohq" },
+  "fonts": {
+    "display": { "family": "Inter Tight", "files": { "700": "InterTight-700.ttf", "800": "InterTight-800.ttf", "900": "InterTight-900.ttf" } },
+    "accent": { "family": "Instrument Serif", "style": "italic", "file": "InstrumentSerif-Italic.ttf" },
+    "mono": { "family": "JetBrains Mono", "files": { "500": "JetBrainsMono-500.ttf" } },
+    "dir": "assets/fonts"
+  },
+  "palettes": {
+    "neon_pink":    { "bg": "#0B0510", "bg2": "#2B0B33", "ac": "#FF2E93", "ac2": "#FF8CC6", "glow": "255,79,163",  "ink": "#FFFFFF", "muted": "#C9B8D4", "w1": "#FF2E93", "w2": "#7C3AED", "caption": "dark",  "weight": 0.55 },
+    "violet_night": { "bg": "#07051A", "bg2": "#1E1147", "ac": "#8B5CF6", "ac2": "#FF8CC6", "glow": "139,92,246",  "ink": "#FFFFFF", "muted": "#BDB4E0", "w1": "#7C3AED", "w2": "#FF2E93", "caption": "dark",  "weight": 0.30 },
+    "paper_light":  { "bg": "#FFF4F9", "bg2": "#FFD9EA", "ac": "#E0157A", "ac2": "#E0157A", "glow": "224,21,122",  "ink": "#1A0B1F", "muted": "#6B4A63", "w1": "#FF8CC6", "w2": "#C4B5FD", "caption": "light", "weight": 0.15 }
+  },
+  "captions": {
+    "dark":  { "style": "pop", "font-family": "Inter Tight", "font-weight": 800, "font-size": 66, "word-color": "{ac2}", "keyword-color": "{ac2}", "line-color": "#FFFFFF", "outline-width": 0, "shadow-color": "#000000AA", "shadow-offset": 4, "max-words-per-line": 3, "x": 540, "y": 1395 },
+    "light": { "style": "boxed-word", "font-family": "Inter Tight", "font-weight": 800, "font-size": 64, "word-color": "{ac}", "box-color": "{ac}", "box-text-color": "#FFFFFF", "line-color": "{ink}", "outline-width": 0, "shadow-color": "#00000000", "shadow-offset": 0, "max-words-per-line": 3, "x": 540, "y": 1395 }
+  },
+  "safe": { "top": 210, "bottom": 1520, "left": 70, "right": 940, "content_y": [230, 1300], "hook_box_y": [380, 1440], "caption_band": [1330, 1460], "cover_title_y": [470, 1440] },
+  "cta": {
+    "lab": { "badge": "t.me/ethanstudiolab", "sub": "A free tool every Wednesday" },
+    "follow": { "badge": "@ethanstudiohq", "sub": "A new free tool every week" },
+    "comment": { "badge": "Comment {KW}", "sub": "I will send it to you" },
+    "save": { "badge": "Save this", "sub": "You will want it later" }
+  },
+  "music": {
+    "default": "es-default-01",
+    "tracks": [
+      { "id": "es-default-01", "mood": ["upbeat", "tech", "chill", "epic"], "url": "https://drive.usercontent.google.com/download?id=11YI9-sYkGEucecE1Gl_uy8j9N8rKHU5H&export=download&confirm=t", "bpm": 0, "hook_in": 0, "license": "owner-provided (used by ES-002)" }
+    ]
+  }
+}
