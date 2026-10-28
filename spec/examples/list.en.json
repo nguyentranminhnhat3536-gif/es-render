@@ -1,0 +1,16 @@
+{"version":"es.creative/1.1","lang":"en","content_type":"list","genre":"list","structure":"list",
+ "topic":"Three mistakes that make customers ignore your quote","promise":"Fix three small things so customers read your whole quote","title":"3 quote mistakes",
+ "energy":"normal","voice":"ava","music":"upbeat","keywords":["quote","price","button"],
+ "hook":{"hook_type":"number","layout":"hook_number","say":"Three mistakes kill your quotes.","text":"Sent. Then silence.","emphasis":"","value":"3","items":[],"visual_kind":"code"},
+ "scenes":[
+  {"role":"context","layout":"title_card","say":"You send a long PDF, the customer opens it on a phone, scrolls once, and closes it.","text":"Too long to read","sub":"","items":[],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"one line, phone-sized","sfx_cue":"none"},
+  {"role":"point","layout":"icon_point","say":"Mistake one: the price is buried on page three, under the small print.","text":"Lead with the number","sub":"","items":[],"value":"","icon":"money","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"money icon","sfx_cue":"pop"},
+  {"role":"point","layout":"compare","say":"Mistake two: no clear next step, so the customer has to guess.","text":"Give one button","sub":"","items":["\"Let me know\"","\"Tap to accept\""],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"wrong vs right ending","sfx_cue":"none"},
+  {"role":"rehook","layout":"title_card","say":"The third mistake is the one almost everyone makes.","text":"Number three","sub":"","items":[],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"a clock hand sweeps past a waiting message","visual_kind":"motion","visual_hint":"short motion card","sfx_cue":"riser"},
+  {"role":"point","layout":"checklist","say":"Mistake three: sending it late, when the customer already asked someone else.","text":"Reply while it is warm","sub":"","items":["Same day","Short summary","1 clear button"],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"boxes tick one by one","sfx_cue":"none"},
+  {"role":"payoff","layout":"list_steps","say":"Fix all three, and your quote reads in one scroll, with one tap to say yes.","text":"The 3 fixes","sub":"","items":["Price first","One clear button","Sent the same day"],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"the three fixes as a recap","sfx_cue":"ding"}],
+ "cta":{"action":"save","say":"Save this for your next quote.","text":"Save for your next quote","keyword":""},
+ "cover":{"title":"Quotes customers read","alt_title":"3 quote mistakes","emphasis":"read","kicker":"SAVE THIS"},
+ "hooks_alt":[{"hook_type":"mistake","say":"Stop hiding your price on page three.","text":"Price on page 3?"},{"hook_type":"question","say":"Why do customers ignore your quote?","text":"Ignored quotes?"}],
+ "facts_used":[],
+ "post":{"caption":"","hashtags":[]},"notes_vi":"Video ~40s: 3 lỗi khi gửi báo giá khiến khách bỏ qua; không dùng số liệu."}

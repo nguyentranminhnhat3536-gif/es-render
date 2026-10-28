@@ -1,0 +1,16 @@
+{"version":"es.creative/1.1","lang":"vi","content_type":"list","genre":"list","structure":"list",
+ "topic":"3 lỗi khi chụp ảnh sản phẩm bằng điện thoại","promise":"Sửa 3 lỗi nhỏ để ảnh sản phẩm trông sạch và rõ hàng","title":"3 lỗi chụp ảnh sản phẩm",
+ "energy":"normal","voice":"namminh","music":"upbeat","keywords":["ảnh sản phẩm","điện thoại","nền trơn"],
+ "hook":{"hook_type":"number","layout":"hook_number","say":"Ảnh sản phẩm xấu vì ba lỗi này.","text":"Không cần máy ảnh xịn","emphasis":"","value":"3","items":[],"visual_kind":"code"},
+ "scenes":[
+  {"role":"context","layout":"title_card","say":"Cùng một món hàng, ảnh tối và lệch làm khách nghĩ hàng kém chất lượng, rồi lướt qua.","text":"Khách chấm điểm bằng mắt","sub":"","items":[],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"một câu chữ lớn","sfx_cue":"none"},
+  {"role":"point","layout":"compare","say":"Lỗi một: chụp dưới đèn vàng trong nhà, màu sản phẩm bị sai hẳn so với thật.","text":"Ra gần cửa sổ","sub":"","items":["Đèn vàng trong nhà","Cạnh cửa sổ ban ngày"],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"so sánh sai / đúng","sfx_cue":"pop"},
+  {"role":"point","layout":"icon_point","say":"Lỗi hai: nền bừa bộn phía sau, mắt khách bị kéo khỏi món hàng chính.","text":"1 tờ giấy trắng là đủ","sub":"","items":[],"value":"","icon":"camera","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"biểu tượng máy ảnh","sfx_cue":"none"},
+  {"role":"rehook","layout":"title_card","say":"Lỗi thứ ba ít ai để ý, nhưng khách thấy ngay.","text":"Ai cũng mắc","sub":"","items":[],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"một món hàng xoay chậm, chỉ thấy một mặt","visual_kind":"motion","visual_hint":"thẻ hoạt hình ngắn","sfx_cue":"riser"},
+  {"role":"point","layout":"checklist","say":"Lỗi ba: chỉ chụp một góc, khách không biết món hàng to hay nhỏ.","text":"Đủ 3 góc","sub":"","items":["Góc chính diện","Góc nghiêng","Cạnh bàn tay"],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"đánh dấu từng góc","sfx_cue":"none"},
+  {"role":"payoff","layout":"list_steps","say":"Sửa đủ ba lỗi này, ảnh chụp bằng điện thoại cũng sáng, gọn và rõ từng chi tiết.","text":"Trước khi đăng","sub":"","items":["Ánh sáng cửa sổ","Nền trơn","3 góc chụp"],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"tóm lại 3 cách sửa","sfx_cue":"ding"}],
+ "cta":{"action":"save","say":"Lưu lại để lần sau chụp làm theo nhé.","text":"Lưu lại để chụp theo","keyword":""},
+ "cover":{"title":"Ảnh đẹp bằng điện thoại","alt_title":"3 lỗi chụp sản phẩm","emphasis":"đẹp","kicker":"LƯU LẠI"},
+ "hooks_alt":[{"hook_type":"mistake","say":"Đừng chụp sản phẩm dưới đèn vàng.","text":"Tắt đèn vàng đi"},{"hook_type":"question","say":"Vì sao ảnh hàng của bạn trông rẻ?","text":"Ảnh trông rẻ?"}],
+ "facts_used":[],
+ "post":{"caption":"","hashtags":[]},"notes_vi":"Video ~40s: 3 lỗi chụp ảnh sản phẩm bằng điện thoại và cách sửa; không dùng số liệu."}
