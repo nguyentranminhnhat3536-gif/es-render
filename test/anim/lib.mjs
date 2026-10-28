@@ -19,7 +19,10 @@ export const SAMPLE_FILE = path.join(REPO, 'examples', 'anim-hello', 'seek-loop.
 export const SAMPLE = fs.readFileSync(SAMPLE_FILE, 'utf8');
 export const NET = process.env.ANIM_NET === '1';
 
-export function tmpDir(tag) { return fs.mkdtempSync(path.join(os.tmpdir(), 'esr-anim-' + tag + '-')); }
+// thư mục tạm của test: xoá khi tiến trình test kết thúc (mỗi file test một tiến trình), ANIM_KEEP=1 để giữ lại xem
+const TMP = [];
+export function tmpDir(tag) { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'esr-anim-' + tag + '-')); TMP.push(d); return d; }
+process.on('exit', () => { if (process.env.ANIM_KEEP === '1') return; for (const d of TMP) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (x) { /* đang bị giữ */ } } });
 // không mạng: bỏ Google Fonts (GSAP CDN thì workCopy đổi sang node_modules)
 export const hermetic = (s) => s.replace(/<link[^>]+fonts\.(googleapis|gstatic)[^>]*>\s*/g, '');
 const H = hermetic(SAMPLE);

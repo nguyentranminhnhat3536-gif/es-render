@@ -3,10 +3,13 @@
 // theo đồng hồ của cảnh.
 //   { "type": "anim", "src": "<id>/<tên>.html", "start", "duration", "seek", "speed", "loop", "until", "x", "y", "width",
 //     "height", "fit": "contain"|"cover", "background": "page"|"transparent", "hide": ["#bg"], "timeout", "on-error": "fail"|"hide" }
+//   "html": "<!doctype html>…" thay cho "src" (cả trang viết thẳng trong job; đường dẫn tương đối tính từ thư mục chứa file job JSON)
 // Mỗi phần tử là một <iframe> trỏ tới BẢN SAO của trang trong work/ (không bao giờ sửa trang gốc): đồng hồ ảo VCLOCK của
-// render.mjs chèn ngay sau doctype (mốc Date.now cố định), Math.random theo seed của job + nội dung trang, GSAP CDN → node_modules.
-// Cổng chờ trong window.ready() (PAGE_JS): data-ready, hợp đồng, mọi font khai báo, ảnh, rồi mới chụp khung đầu. Trang hỏng
-// hợp đồng → job lỗi (mặc định) hoặc bỏ phần tử ("on-error": "hide"). Trang treo (vòng lặp vô tận) → chó canh phía Node (watch).
+// render.mjs chèn ngay sau doctype (mốc Date.now cố định, new Date() không đối số cũng theo đồng hồ ảo), Math.random theo seed
+// của job + nội dung trang, GSAP CDN → node_modules; setTimeout/setInterval được đếm từ đầu trang (W_BOOT_TIMERS).
+// Cổng chờ trong window.ready() (PAGE_JS): data-ready, hợp đồng, mọi font khai báo, ảnh (tới hết "timeout"), rồi mới chụp khung
+// đầu. Trang hỏng hợp đồng → job lỗi (mặc định) hoặc bỏ phần tử ("on-error": "hide"; lần chạy thử hỏng → bỏ ở mọi cảnh, hỏng
+// lúc dựng một cảnh → chỉ bỏ ở cảnh đó, mỗi cảnh tự quyết, không phụ thuộc thứ tự dựng song song). Trang treo → chó canh (watch).
 // Chạy thử mỗi trang một lần trước TTS (prepare: đọc anim.duration, tua thử 5 mốc).
 // Không dùng API Node ≥ 21: es-editor chạy engine này bằng Node 20.
 import fs from 'node:fs';
@@ -24,8 +27,8 @@ const isNum = (v) => (typeof v === 'number' ? Number.isFinite(v) : typeof v === 
 const short = (s, n = 80) => { s = String(s); return s.length > n ? s.slice(0, n) + '…' : s; };
 
 export const isAnim = (e) => !!e && (e.type === 'anim' || e.type === 'motion2code');
-// live = đã qua prepare và trang chưa "chết" (một lần bỏ theo "on-error": "hide" là bỏ luôn ở các cảnh chưa dựng; phần tử
-// "on-error": "fail" vẫn dựng để tự báo lỗi nếu trang vẫn hỏng)
+// live = đã qua prepare và lần chạy thử không hỏng (page.dead chỉ đặt trong prepare, trước khi dựng cảnh nào → kết quả không
+// phụ thuộc RENDER_CONCURRENCY; hỏng lúc dựng một cảnh chỉ bỏ phần tử ở cảnh đó; "on-error": "fail" vẫn dựng để tự báo lỗi)
 export const isLive = (e) => isAnim(e) && !!e._anim && !(e._anim.page.dead && e._anim.policy === 'hide');
 
 // ---------- thời gian: giây của phần tử → giây của trang (thuần, cũng được chèn vào trang bằng toString) ----------
@@ -74,9 +77,9 @@ export function validate(e, ctx = {}) {
   }
   for (const [k, list] of Object.entries(ENUMS)) if (has(e[k]) && !list.includes(e[k])) E('E_ANIM_FIELD', k + ' must be one of ' + list.join(' | ') + ' (got ' + short(JSON.stringify(e[k]), 40) + ')');
   if (has(e.hide)) {
-    // một selector sai trong cả danh sách sẽ làm hỏng cả luật → mỗi selector một luật; cấm { } < > ; (không chèn được CSS / thẻ)
-    if (!Array.isArray(e.hide) || e.hide.length > 20 || e.hide.some((s) => typeof s !== 'string' || !s.trim() || /[{}<>;]/.test(s)))
-      E('E_ANIM_FIELD', 'hide must be a list of at most 20 CSS selectors without { } < > ; (got ' + short(JSON.stringify(e.hide), 60) + ')');
+    // mỗi selector một <style> riêng (một selector sai không kéo theo các luật khác); cấm { } < > ; và chú thích /* */
+    if (!Array.isArray(e.hide) || e.hide.length > 20 || e.hide.some((s) => typeof s !== 'string' || !s.trim() || /[{}<>;]|\/\*|\*\//.test(s)))
+      E('E_ANIM_FIELD', 'hide must be a list of at most 20 CSS selectors without { } < > ; /* */ (got ' + short(JSON.stringify(e.hide), 60) + ')');
   }
   for (const k of Object.keys(e)) {
     if (k.startsWith('_') || KNOWN.has(k)) continue;
@@ -134,6 +137,23 @@ const GSAP_VER = /(?:ajax\/libs\/gsap\/|npm\/gsap@|unpkg\.com\/gsap@)(3[\d.]*\d)
 const DOCTYPE = /^(﻿?\s*(?:<!--[\s\S]*?-->\s*)*<!doctype[^>]*>)/i;
 const ERR_TAG = '<script>window.__esErr=[];addEventListener("error",(e)=>__esErr.push(String(e.message||e)));'
   + 'addEventListener("unhandledrejection",(e)=>__esErr.push("unhandled rejection: "+String(e.reason&&e.reason.message||e.reason)))</script>';
+// hẹn giờ lúc khởi động chạy theo giờ thật: đếm lần hẹn giờ chạy SAU data-ready mà đổi DOM (MutationObserver) và setInterval
+// còn chạy ở cổng — trạng thái đó tuỳ trang tải nhanh hay chậm → W_BOOT_TIMERS. Hẹn giờ chạy xong trước data-ready là một phần
+// của lúc dựng trang; setTimeout dự phòng còn chờ (vd. race với document.fonts.ready) bị cổng huỷ: không tính.
+const TIMER_TAG = '<script>(()=>{const st=setTimeout,si=setInterval,ct=clearTimeout,ci=clearInterval;const iv=new Set();let racy=0,mut=0,on=true;'
+  + 'const mo=new MutationObserver(()=>{mut++});try{mo.observe(document,{subtree:true,childList:true,attributes:true,characterData:true})}catch(e){}'
+  + 'const rd=()=>{const h=document.documentElement;return !!h&&h.dataset.ready==="1"};'
+  + 'const mk=(orig,rep)=>function(f,...a){if(typeof f!=="function")return orig.call(this,f,...a);let id;'
+  + 'id=orig.call(this,function(){if(!rep)iv.delete(id);if(!on||!rd())return f.apply(this,arguments);mo.takeRecords().length&&mut++;const m0=mut;'
+  + 'try{return f.apply(this,arguments)}finally{if(mo.takeRecords().length||mut>m0)racy++}},...a);if(rep)iv.add(id);return id};'
+  + 'const cl=(orig)=>function(id){iv.delete(id);return orig.call(this,id)};'
+  + 'window.setTimeout=mk(st,false);window.setInterval=mk(si,true);window.clearTimeout=cl(ct);window.clearInterval=cl(ci);'
+  + 'window.__esTimers=()=>{on=false;mo.disconnect();return{intervals:iv.size,racy}}})()</script>';
+// new Date() không đối số (và Date() gọi như hàm) theo đồng hồ ảo, như Date.now; Date.parse/UTC, instanceof giữ nguyên.
+// Chỉ trong bản sao trang: cổng chờ (trang cảnh) vẫn đo giờ thật bằng new Date().
+const DATE_TAG = '<script>(()=>{const RD=Date;function D(...a){return new.target?Reflect.construct(RD,a.length?a:[RD.now()],new.target):new RD(RD.now()).toString()}'
+  + 'Object.defineProperty(D,"length",{value:7});D.prototype=RD.prototype;D.now=()=>RD.now();D.parse=RD.parse;D.UTC=RD.UTC;'
+  + 'Object.defineProperty(RD.prototype,"constructor",{value:D,writable:true,configurable:true});window.Date=D})()</script>';
 // o = { vclock, seedTag, baseHref, gsapDir (null = giữ GSAP của trang), gsapVersion, transparent, hide }
 // → { html, kept: [URL GSAP không có bản cục bộ], gsap: { page, used }, epochFrozen }
 export function workCopy(src, o = {}) {
@@ -149,13 +169,14 @@ export function workCopy(src, o = {}) {
   if (own && base) { try { base = new URL(own[1], base).href; } catch (x) { /* giữ base */ } }
   const vclock = String(o.vclock || '').replace('const D0=Date.now()', 'const D0=' + EPOCH);
   // meta charset trước tiên: phần chèn ~1 KB sẽ đẩy meta charset của trang ra khỏi 1024 byte đầu mà trình duyệt dò mã chữ
-  const inj = '<meta charset="utf-8">' + ERR_TAG + vclock + (o.seedTag || '') + (base ? '<base href="' + base.replace(/"/g, '%22') + '">' : '');
+  const inj = '<meta charset="utf-8">' + ERR_TAG + TIMER_TAG + vclock + (o.vclock ? DATE_TAG : '') + (o.seedTag || '') + (base ? '<base href="' + base.replace(/"/g, '%22') + '">' : '');
   const m = html.match(DOCTYPE);
   html = m ? m[1] + inj + html.slice(m[1].length) : inj + html;
-  const css = '*,*::before,*::after{transition:none!important}' + (o.transparent ? 'html,body{background:transparent!important}' : '')
-    + (o.hide || []).map((s) => s + '{display:none!important}').join('');
+  const css = '*,*::before,*::after{transition:none!important}' + (o.transparent ? 'html,body{background:transparent!important}' : '');
+  // mỗi selector của hide một <style>: chuỗi / ngoặc [ ( chưa đóng trong một selector không nuốt các luật sau nó
+  const hide = (o.hide || []).map((s) => '<style data-es-anim>' + s + '{display:none!important}</style>').join('');
   // cuối file (trình duyệt tự đưa vào <body>); tìm </head> có thể trúng chữ trong chú thích / chuỗi script
-  return { html: html + '<style data-es-anim>' + css + '</style>', kept, gsap: { page: pv, used: rewrote ? o.gsapVersion || 'local' : pv }, epochFrozen: !!o.vclock && vclock !== o.vclock };
+  return { html: html + '<style data-es-anim>' + css + '</style>' + hide, kept, gsap: { page: pv, used: rewrote ? o.gsapVersion || 'local' : pv }, epochFrozen: !!o.vclock && vclock !== o.vclock };
 }
 
 // ---------- thời lượng, SPEC, HTML trong cảnh (thuần) ----------
@@ -191,7 +212,8 @@ export function watch(p, ms, what) {
   return Promise.race([p, new Promise((_, j) => { id = setTimeout(() => j(new Error('E_ANIM_HUNG: ' + what + ' did not answer within ' + Math.round(ms / 1000) + ' s (a page script never returned)')), ms); })])
     .finally(() => clearTimeout(id));
 }
-// ngân sách cho window.ready() của một cảnh: timeout lớn nhất + 40 s (font 8 s + ảnh của trang cảnh chờ trước), 0 = cảnh không có anim
+// ngân sách cho window.ready() của một cảnh: timeout lớn nhất (cổng chờ của phần tử kể cả font/ảnh không vượt quá nó) + 40 s
+// (font + ảnh của trang cảnh chờ trước), 0 = cảnh không có anim
 export function budget(s) {
   const t = s.elements.filter(isLive).map((e) => e._anim.n.timeout);
   return t.length ? Math.max(...t) * 1000 + 40000 : 0;
@@ -202,7 +224,7 @@ export const PAGE_JS = `
 window.__esAnim = (() => {
   const mapTime = ${mapTime.toString()};
   const STEP = 25;
-  const wall = () => new Date().getTime(); // VCLOCK đóng băng Date.now và performance.now của trang cảnh, new Date() thì không
+  const wall = () => new Date().getTime(); // VCLOCK đóng băng Date.now và performance.now của trang cảnh, new Date() thì không (chỉ bản sao trang có DATE_TAG)
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const cap = (p, ms) => Promise.race([Promise.resolve(p).then(() => true, () => true), sleep(Math.max(0, ms)).then(() => false)]);
   const msg = (x) => String((x && x.message) || x);
@@ -246,6 +268,9 @@ window.__esAnim = (() => {
     // đóng băng: gsap.ticker.sleep() không giữ được (totalTime() của GSAP đánh thức ticker ở lần seek sau) → dừng cả timeline gốc
     try { if (w.anim.pause) w.anim.pause(); } catch (x) {}
     if (w.gsap && w.gsap.globalTimeline) try { w.gsap.globalTimeline.pause(); } catch (x) {}
+    try { const bt = typeof w.__esTimers === 'function' ? w.__esTimers() : null;
+      if (bt && (bt.intervals || bt.racy)) it.warnings.push('W_BOOT_TIMERS: ' + bt.racy + ' timer callback(s) changed the page after data-ready, ' + bt.intervals
+        + ' setInterval(s) still running at the gate (now stopped): the frozen state depends on how long the page took to load; drive it from anim.seek(t)'); } catch (x) {}
     const top = w.setTimeout(() => {}, 0); for (let i = 1; i <= top; i++) { w.clearTimeout(i); w.clearInterval(i); }
     let late = 0; w.setTimeout = w.setInterval = () => { late++; return 0; }; m.late = () => late;
     m.win = w; m.doc = d; m.dur = dur; it.dur = dur;
@@ -255,18 +280,23 @@ window.__esAnim = (() => {
     try { frame(m, p0); d.documentElement.getBoundingClientRect(); } catch (x) { m.win = null; return fail('E_ANIM_SEEK_THREW', 'anim.seek(' + p0.toFixed(3) + ') threw at the first seek: ' + msg(x)); }
     // mọi font khai báo (cả @font-face CSS), không chỉ font đã dàn trang: font dùng lần đầu ở giây 3 sẽ tải giữa chừng → chữ trống
     const faces = Promise.all([...d.fonts].map((f) => (f.status === 'unloaded' ? f.load() : f.loaded).catch(() => 0))).then(() => d.fonts.ready);
-    if (!(await cap(faces, Math.min(8000, left())))) it.warnings.push('W_FONTS: fonts still loading after the wait');
+    // tới hết hạn của phần tử ("timeout"), không cắt ngắn: font tới muộn hơn sẽ đổi giữa cảnh ở khung tuỳ giờ thật
+    if (!(await cap(faces, left()))) it.warnings.push('W_FONTS: fonts still loading after the ' + m.timeout + ' s wait');
+    m.pendingFaces = [...d.fonts].filter((f) => f.status === 'loading');
     const bad = [...d.fonts].filter((f) => f.status === 'error').map((f) => f.family); if (bad.length) it.warnings.push('W_FONTS: failed to load ' + [...new Set(bad)].join(', '));
     if (loadingAtReady) it.warnings.push('W_LATE_FONTS: ' + loadingAtReady + ' font face(s) still loading at data-ready; page re-seeked after they loaded');
     for (const l of d.querySelectorAll('link[rel~="stylesheet"]')) if (!l.sheet) it.warnings.push('W_STYLESHEET: ' + l.href);
     const imgs = [...d.images].filter((im) => im.src).map((im) => im.decode().catch(() => it.warnings.push('W_IMAGE: ' + im.src)));
     for (const im of d.querySelectorAll('image')) { const h = im.href && im.href.baseVal; if (h) { const x = new w.Image(); x.src = new URL(h, d.baseURI).href; imgs.push(x.decode().catch(() => it.warnings.push('W_IMAGE: ' + h))); } }
-    await cap(Promise.all(imgs), Math.min(8000, left()));
+    await cap(Promise.all(imgs), left());
     try { frame(m, p0); d.documentElement.getBoundingClientRect(); } catch (x) { m.win = null; return fail('E_ANIM_SEEK_THREW', 'anim.seek(' + p0.toFixed(3) + ') threw at the first seek: ' + msg(x)); }
     if (w.gsap && w.gsap.globalTimeline) try {
       const k = w.gsap.globalTimeline.getChildren(false, true, true).filter((c) => c !== w.anim.tl && c.duration() > 0);
       if (k.length) it.warnings.push('W_STRAY_TWEENS: ' + k.length + ' tween(s)/timeline(s) outside anim.tl stay frozen (they do not follow seek)');
     } catch (x) {}
+    // GSAP tự đăng ký đúng 1 hàm ticker; hàm thêm bằng gsap.ticker.add chạy theo rAF tích luỹ (lag smoothing), không theo seek(t)
+    try { const L = w.gsap && w.gsap.ticker && w.gsap.ticker._listeners;
+      if (Array.isArray(L) && L.length > 1) it.warnings.push('W_TICKER: ' + (L.length - 1) + ' gsap.ticker listener(s) do not follow seek(t) (they drift after a loop wrap or a backward seek)'); } catch (x) {}
     if (m.smil) it.warnings.push('W_SMIL: SVG <animate*> elements are driven by setCurrentTime(page time)');
     for (const sel of m.hide || []) { try { if (!d.querySelector(sel)) it.warnings.push('W_HIDE: "' + sel + '" matches nothing'); } catch (x) { it.warnings.push('W_HIDE: invalid selector "' + sel + '"'); } }
     it.ms = wall() - t0; m.key = ''; it.ok = true; return it;
@@ -286,7 +316,8 @@ window.__esAnim = (() => {
     },
     report() {
       return items.map((i) => { const x = (window.SPEC || []).find((s) => s.id === i.id); const m = (x && x.m2c) || {};
-        return Object.assign({}, i, { late_timers: m.late ? m.late() : 0, err: m.err || '' }); });
+        const swapped = (m.pendingFaces || []).filter((f) => f.status !== 'loading').map((f) => f.family + ' (' + f.status + ')');
+        return Object.assign({}, i, { late_timers: m.late ? m.late() : 0, err: m.err || '', font_swaps: [...new Set(swapped)] }); });
     }
   };
 })();
@@ -400,7 +431,8 @@ export async function prepare(scenes, ctx) {
 // ---------- sau cổng chờ / sau cảnh / result.json ----------
 const elOf = (s, id) => s.elements[Number(String(id).slice(1))];
 function note(e, w, log) { const P = e._anim.page; if (!P.seen.has(w)) { P.seen.add(w); log('anim', e._anim.label + ':', w); } }
-// r = kết quả window.ready() (true khi cảnh không có anim). Lỗi "fail" → ném; "hide" → bỏ phần tử, đánh dấu trang chết (các cảnh chưa dựng bỏ luôn)
+// r = kết quả window.ready() (true khi cảnh không có anim). Lỗi "fail" → ném; "hide" → bỏ phần tử trong cảnh này (không lan sang
+// cảnh khác: cảnh nào đã dựng trước hay sau tuỳ RENDER_CONCURRENCY, nên mỗi cảnh tự chạy cổng chờ và tự quyết)
 export function afterReady(s, r, log = () => {}) {
   if (!r || r === true || !Array.isArray(r.items)) return;
   const errs = [];
@@ -410,7 +442,7 @@ export function afterReady(s, r, log = () => {}) {
     for (const w of it.warnings) note(e, w, log);
     if (!it.problems.length) continue;
     const where = e._anim.where + ' (' + e._anim.label + '): ' + it.problems.join('; ');
-    if (it.fallback === 'hide') { e._anim.page.dead = true; e._anim.page.why = it.problems.join('; '); log(where, '→ hidden ("on-error": "hide")'); }
+    if (it.fallback === 'hide') log(where, '→ hidden in this scene ("on-error": "hide")');
     else errs.push(where);
   }
   if (errs.length) throw new Error(errs.join('\n'));
@@ -419,7 +451,8 @@ export function afterScene(s, rep, log = () => {}) {
   for (const it of rep || []) {
     const e = elOf(s, it.id); if (!e || !e._anim || !e._anim.run) continue; const R = e._anim.run;
     if (it.late_timers > 0) { const w = 'W_TIMERS: ' + it.late_timers + ' setTimeout/setInterval call(s) after the gate were ignored (timers do not follow seek)'; R.warnings.push(w); note(e, w, log); }
-    if (it.err) { R.problems.push(it.err.replace(/^anim e\d+ \(.*?\): /, '')); R.fallback = 'hide'; e._anim.page.dead = true; e._anim.page.why = it.err; log(e._anim.where + ':', it.err, '→ hidden from that frame on'); }
+    if (Array.isArray(it.font_swaps) && it.font_swaps.length) { const w = 'W_FONT_SWAPPED_MID_RENDER: ' + it.font_swaps.join(', ') + ' finished loading after the gate (earlier frames use the fallback font; raise "timeout")'; R.warnings.push(w); note(e, w, log); }
+    if (it.err) { R.problems.push(it.err.replace(/^anim e\d+ \(.*?\): /, '')); R.fallback = 'hide'; log(e._anim.where + ':', it.err, '→ hidden from that frame on, in this scene only'); }
   }
 }
 // lỗi trong lúc tua một cảnh → "anim: scene N … element eK (src): E_…" cho lỗi anim, "scene N: …" cho lỗi khác

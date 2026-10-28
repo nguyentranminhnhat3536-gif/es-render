@@ -161,6 +161,59 @@ test('epoch: Date.now() in the page = EPOCH + page ms', async () => {
   assert.equal(v, String(ANIM.EPOCH + 1250));
 });
 
+test('date: new Date() / Date() without arguments follow the page clock; Date(args), parse, UTC, instanceof unchanged', async () => {
+  const f = work(dir, mini({ seek: 'window.__d=[new Date().getTime(),String(Date()),new Date(0).getTime(),Date.UTC(2020,0,1),Date.parse("2020-01-01T00:00:00Z"),new Date() instanceof Date,new Date().constructor===Date,typeof Date.now()];' }));
+  const h = await openHost(browser, dir, one(f)); await h.gate(); await h.seek(1.25);
+  const v = await h.page.evaluate(() => document.querySelector('iframe').contentWindow.__d); await h.close();
+  assert.equal(v[0], ANIM.EPOCH + 1250); assert.equal(v[1], new Date(ANIM.EPOCH + 1250).toString().slice(0, 15) + v[1].slice(15)); // ngày theo đồng hồ ảo (giờ theo múi giờ máy)
+  assert.ok(v[1].includes(String(new Date(ANIM.EPOCH + 1250).getFullYear())));
+  assert.deepEqual(v.slice(2), [0, 1577836800000, 1577836800000, true, true, 'number']);
+});
+
+test('boot timers: a running interval or a timer that changed the page after data-ready → W_BOOT_TIMERS; timers done before data-ready and the example page → none', async () => {
+  const gate = async (src) => { const h = await openHost(browser, dir, one(work(dir, src))); const g = await h.gate(); await h.close(); return g.items[0].warnings.filter((w) => w.startsWith('W_BOOT_TIMERS')); };
+  const iv = await gate(mini({ js: 'setInterval(()=>{},50);setTimeout(()=>{},60000);' }));
+  assert.equal(iv.length, 1); assert.match(iv[0], /^W_BOOT_TIMERS: 0 timer callback\(s\) changed the page after data-ready, 1 setInterval\(s\) still running/);
+  // data-ready ngay, hẹn giờ 1 ms đổi DOM (chạy trước cổng: cổng chờ sự kiện load + một vòng CDP); hẹn giờ không đổi DOM thì không tính
+  const rc = await gate(mini({ js: 'setTimeout(()=>{document.body.dataset.x="1"},1);setTimeout(()=>{},1);' }));
+  assert.equal(rc.length, 1); assert.match(rc[0], /^W_BOOT_TIMERS: 1 timer callback\(s\) changed the page after data-ready, 0 setInterval/);
+  assert.deepEqual(await gate(variants.slow()), []); // setTimeout 1,5 s rồi mới data-ready: một phần của lúc dựng trang
+  assert.deepEqual(await gate(variants.herm()), []);
+});
+
+test('ticker: a gsap.ticker.add listener → W_TICKER; the example page (GSAP only) → none', async () => {
+  const w = async (src) => { const h = await openHost(browser, dir, one(work(dir, src))); const g = await h.gate(); await h.close(); return g.items[0].warnings.filter((x) => x.startsWith('W_TICKER')); };
+  assert.deepEqual(await w(variants.herm()), []);
+  const tk = await w(variants.herm().replace("document.documentElement.dataset.ready = '1';", "gsap.ticker.add(() => {}); document.documentElement.dataset.ready = '1';"));
+  assert.equal(tk.length, 1); assert.match(tk[0], /^W_TICKER: 1 gsap\.ticker listener/);
+});
+
+test('fontswap: a face still loading when the timeout ends → W_FONTS at the gate and the swap reported after capture', { skip: !TTF && 'no TTF on this machine' }, async () => {
+  const ttf = fs.readFileSync(TTF);
+  const srv = await server((q, r) => setTimeout(() => { r.writeHead(200, { 'content-type': 'font/ttf', 'access-control-allow-origin': '*' }); r.end(ttf); }, 2500));
+  const f = work(dir, mini({ head: '<style>@font-face{font-family:Sw;src:url(http://127.0.0.1:' + srv.port + '/sw.ttf) format("truetype");font-display:swap}</style>',
+    body: '<text id="sw" x="40" y="300" font-size="150" fill="#fff" font-family="Sw, monospace" display="none">Wgx</text>', seek: 'document.getElementById("sw").setAttribute("display",t>=0.4?"inline":"none");' }));
+  const h = await openHost(browser, dir, one(f, { timeout: 1 })); const g = await h.gate();
+  await new Promise((r) => setTimeout(r, 2500)); await h.seek(0.5); await h.page.waitForTimeout(300);
+  const rep = await h.page.evaluate(() => window.__esAnim.report()); await h.close(); await srv.close();
+  assert.ok(g.items[0].warnings.some((x) => /^W_FONTS: fonts still loading after the 1 s wait/.test(x)), JSON.stringify(g.items[0].warnings));
+  assert.deepEqual(rep[0].font_swaps, ['Sw (loaded)']);
+  const s = { i: 0, elements: [{ type: 'anim', _anim: { page: { seen: new Set() }, label: 'x', where: 'w', run: { warnings: [], problems: [] } } }] };
+  ANIM.afterScene(s, [{ id: 'e0', late_timers: 0, err: '', font_swaps: rep[0].font_swaps }]);
+  assert.match(s.elements[0]._anim.run.warnings[0], /^W_FONT_SWAPPED_MID_RENDER: Sw \(loaded\)/);
+});
+
+test('longfont: the gate waits for a face up to the element timeout (not a fixed 8 s)', { skip: !TTF && 'no TTF on this machine' }, async (t) => {
+  const ttf = fs.readFileSync(TTF); const DELAY = 9000;
+  const srv = await server((q, r) => setTimeout(() => { r.writeHead(200, { 'content-type': 'font/ttf', 'access-control-allow-origin': '*' }); r.end(ttf); }, DELAY));
+  const f = work(dir, mini({ head: '<style>@font-face{font-family:Lg;src:url(http://127.0.0.1:' + srv.port + '/lg.ttf) format("truetype");font-display:swap}</style>',
+    body: '<text id="lg" x="40" y="300" font-size="150" fill="#fff" font-family="Lg, monospace" display="none">Wgx</text>', seek: 'document.getElementById("lg").setAttribute("display",t>=1?"inline":"none");' }));
+  const h = await openHost(browser, dir, one(f, { timeout: 15 })); const g = await h.gate();
+  const st = await h.page.evaluate(() => [...document.querySelector('iframe').contentDocument.fonts].map((x) => x.status)); await h.close(); await srv.close();
+  assert.equal(g.ok, true); assert.deepEqual(st, ['loaded']); assert.ok(!g.items[0].warnings.some((x) => x.startsWith('W_FONTS')), JSON.stringify(g.items[0].warnings));
+  t.diagnostic('gate ' + g.wall + ' ms');
+});
+
 test('timers: setTimeout after the gate is ignored and counted (W_TIMERS source), frames identical across runs', async () => {
   const f = work(dir, mini({ body: '<rect id="r" x="10" y="10" width="100" height="100" fill="#f0f"/>', seek: 'setTimeout(()=>{document.getElementById("r").setAttribute("x",String(10+Math.random()*800))},0);',
     js: 'setInterval(()=>{document.getElementById("r").setAttribute("x","700")},1000);' }));

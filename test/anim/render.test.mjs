@@ -166,7 +166,7 @@ test('T4 page that hangs mid-scene (at a time the preflight probes miss): the pe
   t.diagnostic(r.ms + ' ms: ' + r.result.message);
 });
 
-test('T4 sticky "hide": a page host that stalls after the preflight costs one timeout, later scenes drop the element', async (t) => {
+test('T4 per-scene "hide": a page host that stalls after the preflight is hidden in every scene that hits it, each scene decides alone (no carry-over that depends on RENDER_CONCURRENCY)', async (t) => {
   let n = 0; const srv = http.createServer((q, res) => { n++; if (n === 1) { res.writeHead(200, { 'content-type': 'text/javascript' }); res.end("document.documentElement.dataset.ready='1'"); } });
   await new Promise((x) => srv.listen(0, '127.0.0.1', x));
   // data-ready comes from a script added after load (does not hold the load event): 1st request answers (preflight), later ones stall
@@ -174,8 +174,8 @@ test('T4 sticky "hide": a page host that stalls after the preflight costs one ti
   const el = { type: 'anim', src: 'stall.html', timeout: 2, 'on-error': 'hide' };
   const r = await render('stall', { width: W, height: H, creative: 'off', scenes: [1, 2, 3].map((i) => ({ comment: 's0' + i + ' item', duration: 1, 'background-color': '#336699', elements: [{ ...el }] })) }, { RENDER_CONCURRENCY: '1' });
   srv.closeAllConnections?.(); srv.close();
-  assert.equal(r.code, 0, r.log.slice(-2000)); assert.equal(n, 2, 'requests: preflight + scene 1 only');
+  assert.equal(r.code, 0, r.log.slice(-2000)); assert.equal(n, 4, 'requests: preflight + one per scene (each scene runs its own gate)');
   const A = r.result.anims; assert.equal(A.length, 3); assert.ok(A.every((a) => a.fallback === 'hide' && !a.ok));
-  assert.match(A[0].problems[0], /^E_ANIM_NOT_READY: <html data-ready="1"> not set within 2 s/); assert.equal((r.log.match(/→ hidden/g) || []).length, 1);
+  assert.match(A[0].problems[0], /^E_ANIM_NOT_READY: <html data-ready="1"> not set within 2 s/); assert.equal((r.log.match(/→ hidden in this scene/g) || []).length, 3);
   t.diagnostic(r.ms + ' ms, ' + n + ' page requests; ' + JSON.stringify(A.map((a) => a.scene + a.el + ':' + a.fallback)));
 });

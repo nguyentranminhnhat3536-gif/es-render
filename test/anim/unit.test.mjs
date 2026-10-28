@@ -29,7 +29,7 @@ test('validate: one case per error code, warnings, clean example', () => {
   for (const u of ['https://x.com/a.html', 'http://x/a.html', 'data:text/html,<p>', '//cdn/x.html']) assert.deepEqual(codes(ANIM.validate({ type: 'anim', src: u })), ['E_ANIM_SRC_REMOTE'], u);
   const F = (o) => codes(ANIM.validate({ ...ok, ...o }));
   for (const o of [{ start: 'x' }, { duration: 0 }, { duration: -2 }, { seek: -1 }, { speed: 0 }, { speed: 17 }, { width: 0 }, { height: -5 }, { timeout: 0.5 }, { timeout: 121 },
-    { loop: 'yes' }, { fit: 'fill' }, { background: 'black' }, { 'on-error': 'skip' }, { hide: '#bg' }, { hide: ['#bg{x}'] }, { hide: ['a;b'] }, { hide: ['<x>'] }, { hide: [''] },
+    { loop: 'yes' }, { fit: 'fill' }, { background: 'black' }, { 'on-error': 'skip' }, { hide: '#bg' }, { hide: ['#bg{x}'] }, { hide: ['a;b'] }, { hide: ['<x>'] }, { hide: [''] }, { hide: ['#x/*'] }, { hide: ['a*/'] },
     { hide: Array.from({ length: 21 }, (_, i) => '#a' + i) }, { x: null, y: 'abc' }, { until: 3 }, { loop: true, until: 3 }, { loop: false, seek: 3, until: 2 }, { loop: false, until: 'z' }])
     assert.deepEqual(F(o), ['E_ANIM_FIELD'], JSON.stringify(o));
   // until > D chỉ kiểm được sau lần chạy thử (ctx.dur)
@@ -76,12 +76,13 @@ test('workCopy: injection order right after the doctype, GSAP rewrite, style blo
   assert.equal(SAMPLE, before);
   const h = wc.html;
   assert.ok(h.startsWith('<!doctype html><meta charset="utf-8"><script>window.__esErr=[]'), h.slice(0, 80));
-  const order = ['<meta charset="utf-8">', 'window.__esErr', 'window.__esTick', 'SEED', '<base href="file:///src/dir/">', '<html lang="en">'].map((s) => h.indexOf(s));
+  const order = ['<meta charset="utf-8">', 'window.__esErr', 'window.__esTimers', 'window.__esTick', 'window.Date=D', 'SEED', '<base href="file:///src/dir/">', '<html lang="en">'].map((s) => h.indexOf(s));
   assert.ok(order.every((v, i) => v >= 0 && (i === 0 || v > order[i - 1])), 'order ' + order);
   assert.ok(h.includes('const D0=' + ANIM.EPOCH) && !h.includes('const D0=Date.now()') && wc.epochFrozen);
   assert.ok(h.includes(pathToFileURL(path.join(GSAP_DIR, 'gsap.min.js')).href) && !h.includes('cdnjs.cloudflare.com/ajax/libs/gsap'));
   assert.deepEqual(wc.gsap, { page: '3.12.5', used: '3.15.0' });
-  assert.ok(h.endsWith('<style data-es-anim>*,*::before,*::after{transition:none!important}html,body{background:transparent!important}#bg{display:none!important}.x .y{display:none!important}</style>'));
+  // mỗi selector của hide một <style> riêng: "/*" hay "[" chưa đóng không nuốt luật sau
+  assert.ok(h.endsWith('<style data-es-anim>*,*::before,*::after{transition:none!important}html,body{background:transparent!important}</style><style data-es-anim>#bg{display:none!important}</style><style data-es-anim>.x .y{display:none!important}</style>'), h.slice(-200));
   // BOM + chú thích trước doctype; trang không có <html>/<head>; trang không có doctype
   const b = ANIM.workCopy('﻿<!-- hi -->\n<!DOCTYPE html>\n<p>x', { vclock: VCLOCK }).html;
   assert.ok(b.startsWith('﻿<!-- hi -->\n<!DOCTYPE html><meta charset="utf-8">'), JSON.stringify(b.slice(0, 50)));
@@ -158,6 +159,17 @@ test('budget, isLive, result: only for anim jobs', () => {
   assert.deepEqual(ANIM.result([{ i: 0, elements: [{ type: 'html' }] }]), {});
   const r = ANIM.result([s]).anims;
   assert.equal(r.length, 2); assert.equal(r[0].fallback, 'hide'); assert.deepEqual(r[0].problems, ['E_ANIM_NOT_READY: x']);
+});
+
+test('on-error hide at render time stays in that scene: later scenes keep the element whatever the scheduling', () => {
+  const P = { dead: false, why: '', dur: 5, stage: [1920, 1080], gsap: { page: null, used: null }, warnings: [], seen: new Set() };
+  const mk = () => ({ type: 'anim', _anim: { page: P, policy: 'hide', label: 'a.html', where: 'w', n: { timeout: 7 }, warnings: [], run: null } });
+  const s1 = { i: 0, elements: [mk()] }; const s2 = { i: 1, elements: [mk()] };
+  ANIM.afterReady(s1, { ok: true, items: [{ id: 'e0', ok: false, ms: 5, dur: 0, problems: ['E_ANIM_NOT_READY: x'], warnings: [], fallback: 'hide' }] });
+  assert.equal(P.dead, false); assert.equal(ANIM.isLive(s2.elements[0]), true);
+  ANIM.afterScene(s1, [{ id: 'e0', late_timers: 0, err: 'anim e0 (a.html): E_ANIM_SEEK_THREW: boom', font_swaps: [] }]);
+  assert.equal(P.dead, false); assert.equal(ANIM.isLive(s2.elements[0]), true);
+  const r = ANIM.result([s1, s2]).anims; assert.equal(r[0].fallback, 'hide'); assert.equal(r[1].fallback, undefined);
 });
 
 test('sceneError: anim errors get scene + element + page, others get the scene', () => {
