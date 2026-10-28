@@ -7,6 +7,9 @@ name: render
 # Dự án fframes (Rust): thư mục jobs/<id>/ có Cargo.toml (không có index.html, tạo bằng `cargo fframes new`) → dựng bằng ff.mjs.
 # Dự án Remotion: thư mục jobs/<id>/ có package.json với dependency "remotion" + package-lock.json (không có index.html / Cargo.toml)
 # → dựng bằng rm.mjs. Remotion có giấy phép riêng (miễn phí cho cá nhân, công ty ≤ 3 người, phi lợi nhuận) — xem README.
+# Job CreativeSpec (jobs/<id>.json có "kind": "spec", node "Kiểm tra CreativeSpec" của n8n đẩy lên) → spec/run.mjs: kiểm tra lại bằng
+# spec/core.cjs, đọc giọng, khớp 30–60 s / hook ≤ 3 s, dựng bằng render.mjs, ảnh bìa, QA + chuẩn es-short/1 → "outcome" cho n8n.
+# Mọi video có ảnh bìa (cover.mjs): out/<id>.cover.jpg (+ -3x4 / -1x1) → Release, cover_url trong results/<id>.json.
 on:
   push:
     branches: [main]
@@ -100,13 +103,20 @@ jobs:
           for j in ${{ steps.find.outputs.list }}; do
             echo "::group::$j"
             id=$(basename "$j" .json)
-            node render.mjs "$j" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $j"
+            if jq -e '.kind == "spec"' "$j" > /dev/null 2>&1; then
+              # spec/run.mjs luôn ghi out/<id>.result.json; exit 75 = lỗi hạ tầng tạm thời (TTS, mạng, Chromium) → thử lại đúng 1 lần
+              rc=0; node spec/run.mjs "$j" out || rc=$?
+              if [ "$rc" = "75" ]; then echo "lỗi tạm thời → thử lại 1 lần: $j"; sleep 20; node spec/run.mjs "$j" out || echo "spec lỗi: $j"; fi
+            else
+              # ảnh bìa trước QA (chuẩn es-short/1 chỉ báo đọc file bìa); bìa lỗi không bao giờ làm hỏng video
+              node render.mjs "$j" out && { node cover.mjs "$j" out || true; node qa.mjs "out/$id.mp4" "out/$id.result.json"; } || echo "render lỗi: $j"
+            fi
             echo "::endgroup::"
           done
           for d in ${{ steps.find.outputs.hf }}; do
             echo "::group::HyperFrames $d"
             id=$(basename "$d")
-            node hf.mjs "$d" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $d"
+            node hf.mjs "$d" out && { node cover.mjs "out/$id.result.json" out || true; node qa.mjs "out/$id.mp4" "out/$id.result.json"; } || echo "render lỗi: $d"
             echo "::endgroup::"
           done
 
@@ -137,7 +147,7 @@ jobs:
           for d in ${{ steps.find.outputs.rm }}; do
             echo "::group::Remotion $d"
             id=$(basename "$d")
-            node rm.mjs "$d" out && node qa.mjs "out/$id.mp4" "out/$id.result.json" || echo "render lỗi: $d"
+            node rm.mjs "$d" out && { node cover.mjs "out/$id.result.json" out || true; node qa.mjs "out/$id.mp4" "out/$id.result.json"; } || echo "render lỗi: $d"
             echo "::endgroup::"
           done
 
@@ -182,7 +192,7 @@ jobs:
             echo "::group::fframes $d"
             id=$(basename "$d")
             # build xong ít nhất một dự án mới được lưu cache (build hỏng / bị huỷ mà lưu thì các lần sau dựng lại từ đầu mãi)
-            if node ff.mjs "$d" out; then echo "built=1" >> "$GITHUB_OUTPUT"; node qa.mjs "out/$id.mp4" "out/$id.result.json" || true; else echo "render lỗi: $d"; fi
+            if node ff.mjs "$d" out; then echo "built=1" >> "$GITHUB_OUTPUT"; node cover.mjs "out/$id.result.json" out || true; node qa.mjs "out/$id.mp4" "out/$id.result.json" || true; else echo "render lỗi: $d"; fi
             echo "::endgroup::"
           done
           # bỏ mã nguồn FFmpeg (~1,4 GB) trước khi lưu cache: build script chỉ cần out/dist (thư viện đã dựng)
@@ -212,11 +222,23 @@ jobs:
           for j in ${{ steps.find.outputs.list }} ${{ steps.find.outputs.hf }} ${{ steps.find.outputs.ff }} ${{ steps.find.outputs.rm }}; do
             id=$(basename "$j" .json)
             r="out/$id.result.json"
-            if [ ! -f "$r" ]; then echo "{\"id\":\"$id\",\"status\":\"error\",\"message\":\"render không tạo kết quả (xem log Actions)\"}" > "$r"; fi
+            if [ ! -f "$r" ]; then
+              if [ -f "$j" ] && jq -e '.kind == "spec"' "$j" > /dev/null 2>&1; then
+                # job spec không có kết quả (runner bị huỷ…): n8n vẫn đọc được outcome
+                jq -n --arg id "$id" --arg h "$(jq -r '.spec_hash // ""' "$j")" '{id: $id, kind: "spec", spec_hash: $h, status: "error", message: "render không tạo kết quả (xem log Actions)", outcome: "fail", publishable: false, summary_vi: "❌ Chưa dựng được · render không tạo kết quả (xem log Actions)"}' > "$r"
+              else echo "{\"id\":\"$id\",\"status\":\"error\",\"message\":\"render không tạo kết quả (xem log Actions)\"}" > "$r"; fi
+            fi
             if [ "$(jq -r .status "$r")" = "done" ] && [ -f "out/$id.mp4" ]; then
               gh release upload "$TAG" "out/$id.mp4" --clobber
               url="https://github.com/${{ github.repository }}/releases/download/$TAG/$id.mp4"
-              jq --arg url "$url" --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '. + {url: $url, run: $run}' "$r" > "results/$id.json"
+              base="https://github.com/${{ github.repository }}/releases/download/$TAG"
+              # ảnh bìa (nếu cover.mjs đã tạo): đưa lên cùng Release, thêm cover_url (9:16), cover_3x4_url, cover_1x1_url + cover.url*
+              cv=""; c34=""; c11=""
+              if [ -f "out/$id.cover.jpg" ]; then gh release upload "$TAG" "out/$id.cover.jpg" --clobber && cv="$base/$id.cover.jpg"; fi
+              if [ -f "out/$id.cover-3x4.jpg" ]; then gh release upload "$TAG" "out/$id.cover-3x4.jpg" --clobber && c34="$base/$id.cover-3x4.jpg"; fi
+              if [ -f "out/$id.cover-1x1.jpg" ]; then gh release upload "$TAG" "out/$id.cover-1x1.jpg" --clobber && c11="$base/$id.cover-1x1.jpg"; fi
+              jq --arg url "$url" --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --arg cv "$cv" --arg c34 "$c34" --arg c11 "$c11" \
+                '. + {url: $url, run: $run} + (if $cv != "" then {cover_url: $cv, cover_3x4_url: (if $c34 != "" then $c34 else null end), cover_1x1_url: (if $c11 != "" then $c11 else null end), cover: ((.cover // {}) + {url: $cv, url_3x4: (if $c34 != "" then $c34 else null end), url_1x1: (if $c11 != "" then $c11 else null end)})} else {} end)' "$r" > "results/$id.json"
             else
               jq --arg run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '. + {run: $run}' "$r" > "results/$id.json"
             fi
