@@ -3,6 +3,7 @@
 //   node render.mjs jobs/<id>.json [out_dir]
 // Cần: Chromium (Playwright), ffmpeg có libass, python3 + edge-tts (giọng Microsoft Neural miễn phí).
 // Hỗ trợ: html / image / video (vị trí, start, duration, fade-in/out, z-index, keyframes x/y + easing, rotate, zoom, animation),
+//         anim (trang anim.seek / motion2code làm cảnh hoặc lớp phủ: src, seek, speed, loop, until, fit, nền trong suốt — anim.mjs),
 //         voice (TTS + phụ đề karaoke / pop / one-word / progressive / boxed), video (cắt seek/duration, fit cover/contain/blur,
 //         âm thanh gốc hoặc file thay thế, words → phụ đề), audio (seek, duration, volume, fade-out, loop),
 //         nhạc nền cấp movie, mọi chuyển cảnh xfade của ffmpeg, ducking nhạc dưới giọng, chuẩn hoá -14 LUFS / -1.5 dBTP.
@@ -12,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { spawn, execFileSync } from 'node:child_process';
+import * as ANIM from './anim.mjs';
 
 const FPS = Number(process.env.RENDER_FPS || 30);
 const CONC = Math.max(1, Number(process.env.RENDER_CONCURRENCY || Math.min(3, os.cpus().length - 1 || 1)));
@@ -21,6 +23,7 @@ const PY = process.env.PYTHON || 'python3';
 const LUFS = Number(process.env.TARGET_LUFS || -14);
 
 const jobPath = process.argv[2];
+if (jobPath === '--features') { console.log(JSON.stringify({ features: ANIM.FEATURES })); process.exit(0); } // es-editor: engine có phần tử anim chưa
 const outDir = path.resolve(process.argv[3] || 'out');
 if (!jobPath) { console.error('usage: node render.mjs jobs/<id>.json [out_dir]'); process.exit(2); }
 const job = JSON.parse(fs.readFileSync(jobPath, 'utf8'));
@@ -58,6 +61,10 @@ function run(cmd, args, opts = {}) {
   });
 }
 const probeDur = (f) => num(execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString().trim(), 0);
+// màu video nguồn: { codec_name, width, height, color_space, color_transfer, color_primaries } (lỗi → {})
+const probeColor = (f) => { try { return Object.fromEntries(execFileSync(FFPROBE, ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name,width,height,color_space,color_transfer,color_primaries', '-of', 'default=nw=1', f]).toString().trim().split('\n').map((l) => l.split('='))); } catch (e) { return {}; } };
+// tone map HDR cần zscale (libzimg, có sẵn trong ffmpeg apt của Ubuntu); bản ffmpeg thiếu → bỏ tone map (màu nhạt) thay vì hỏng cả job
+let zs; const hasZscale = () => { if (zs === undefined) { try { zs = /\bzscale\b/.test(execFileSync(FFMPEG, ['-hide_banner', '-filters']).toString()); } catch (e) { zs = false; } if (!zs) log('ffmpeg thiếu zscale → video HDR/BT.2020 không được tone map'); } return zs; };
 
 async function download(url, dest, tries = 4) {
   for (let i = 0; i < tries; i++) {
@@ -97,6 +104,9 @@ scenes.forEach((s) => s.elements.forEach((e, k) => {
 async function main() {
   const t0 = Date.now();
   log('job', id, W + 'x' + H, scenes.length, 'scenes,', voices.length, 'voice lines, concurrency', CONC);
+  // trang anim.seek: kiểm tra + chạy thử trước TTS (lỗi hợp đồng báo sớm, đọc anim.duration cho thời lượng cảnh); job không có anim → bỏ qua
+  await ANIM.prepare(scenes, { jobPath, movie, work, W, H, FPS, log, launch: loadChromium, vclock: VCLOCK,
+    seedFor: (k) => seedTag(Math.floor(rng(CR.seed + ':anim:' + k)() * 4294967296)) });
   if (voices.length) {
     fs.writeFileSync(path.join(work, 'tts.json'), JSON.stringify(voices));
     await run(PY, [path.join(path.dirname(new URL(import.meta.url).pathname), 'tts.py'), path.join(work, 'tts.json')]);
@@ -114,6 +124,7 @@ async function main() {
         if (e.type === 'voice' && e._out) D = Math.max(D, st + e._dur + num(e['extra-time'], 0));
         else if (e.type === 'audio' && !e.spill && num(e.duration, -1) > 0) D = Math.max(D, st + num(e.duration));
         else if ((e.type === 'html' || e.type === 'image' || e.type === 'video') && num(e.duration, -2) > 0) D = Math.max(D, st + num(e.duration));
+        else if (ANIM.isLive(e)) D = Math.max(D, st + ANIM.span(e));
       }
     }
     s.frames = Math.max(Math.round(FPS * 0.2), Math.round((D > 0 ? D : 3) * FPS)); // jump cut có thể < 1s
@@ -147,7 +158,8 @@ async function main() {
   await run(FFMPEG, ['-y', '-v', 'error', '-i', vid, '-i', aud, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out]);
   const dur = probeDur(out);
   const res = { id, status: 'done', duration: r3(dur), width: W, height: H, file: path.basename(out), render_seconds: Math.round((Date.now() - t0) / 1000), creative: CR.level,
-    scenes: scenes.map((s) => ({ t: r3(s.T), d: r3(s.D), ...(s.trans ? { trans: s.trans.style, td: r3(s.trans.d) } : {}) })) }; // mốc nối cảnh cho QA
+    scenes: scenes.map((s) => ({ t: r3(s.T), d: r3(s.D), ...(s.trans ? { trans: s.trans.style, td: r3(s.trans.d) } : {}) })), // mốc nối cảnh cho QA
+    ...ANIM.result(scenes) }; // anims: [...] chỉ khi job có phần tử anim
   fs.writeFileSync(path.join(outDir, id + '.result.json'), JSON.stringify(res, null, 1));
   log('done', out, res.duration + 's in', res.render_seconds + 's');
 }
@@ -234,7 +246,7 @@ const VCLOCK = '<script>(()=>{let now=0;const q=[];let id=0;const D0=Date.now();
 function sceneDoc(s, head) {
   const els = []; let html = '';
   s.elements.forEach((e, k) => {
-    if (e.type !== 'html' && e.type !== 'image' && e.type !== 'video') return;
+    if (e.type !== 'html' && e.type !== 'image' && e.type !== 'video' && !ANIM.isLive(e)) return;
     const eid = 'e' + k; const st = num(e.start, 0);
     const dur = num(e.duration, -2); const end = dur > 0 ? st + dur : s.D + 1;
     const w = num(e.width, 0); const h = num(e.height, -1);
@@ -242,10 +254,11 @@ function sceneDoc(s, head) {
     // animation: "pop" hoặc { in: "rise", out: "fade", duration: 0.45 } — kiểu vào/ra có sẵn, xem ANIM trong PAGE_JS
     const an = e.animation ? (typeof e.animation === 'string' ? { in: e.animation } : e.animation) : null;
     els.push({ id: eid, st, end, fi: num(e['fade-in'], 0), fo: num(e['fade-out'], 0), x: num(e.x, 0), y: num(e.y, 0), w, h, kf, rot: e.rotate ? { a: num(e.rotate.angle, 0), s: num(e.rotate.speed, 1) } : null, zoom: num(e.zoom, 0),
-      an: an ? { in: String(an.in || ''), out: String(an.out || ''), d: Math.max(0.05, num(an.duration, 0.45)) } : null, vf: e._vf || null });
+      an: an ? { in: String(an.in || ''), out: String(an.out || ''), d: Math.max(0.05, num(an.duration, 0.45)) } : null, vf: e._vf || null, ...(ANIM.isLive(e) ? { m2c: ANIM.spec(e) } : {}) });
     const z = num(e['z-index'], 0);
     const box = 'position:absolute;left:0;top:0;visibility:hidden;transform-origin:center center;z-index:' + (z * 100 + k) + ';';
-    if (e.type === 'html') {
+    if (ANIM.isLive(e)) html += ANIM.box(e, eid, box, w, h); // <iframe> trỏ tới bản sao trang trong work/
+    else if (e.type === 'html') {
       let inner = String(e.html || ''); if (head && inner.startsWith(head)) inner = inner.slice(head.length);
       html += '<div id="' + eid + '" style="' + box + 'width:' + w + 'px;height:' + (h > 0 ? h + 'px' : 'auto') + ';overflow:hidden">' + inner + '</div>';
     } else if (e.type === 'video') {
@@ -261,7 +274,7 @@ function sceneDoc(s, head) {
     + '#cam{position:absolute;left:0;top:0;width:' + W + 'px;height:' + H + 'px;isolation:isolate;transform-origin:center center}</style></head><body>'
     + '<svg width="0" height="0" style="position:absolute"><filter id="mb" x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB"><feGaussianBlur id="mbg" stdDeviation="0" edgeMode="duplicate"/></filter></svg>'
     + '<div id="stage"><div id="cam">' + html + '</div></div>'
-    + '<script>window.SPEC=' + JSON.stringify(els).replace(/</g, '\\u003c') + ';window.CAM=' + JSON.stringify(s.cam || null) + ';window.WH=[' + W + ',' + H + '];window.FPS=' + FPS + ';' + PAGE_JS + '</script></body></html>';
+    + '<script>window.SPEC=' + JSON.stringify(els).replace(/</g, '\\u003c') + ';window.CAM=' + JSON.stringify(s.cam || null) + ';window.WH=[' + W + ',' + H + '];window.FPS=' + FPS + ';' + PAGE_JS + (s.elements.some(ANIM.isLive) ? ANIM.PAGE_JS : '') + '</script></body></html>';
 }
 const PAGE_JS = `
 const c1 = 1.70158, c3 = c1 + 1, c4 = (2 * Math.PI) / 3;
@@ -334,6 +347,7 @@ window.seek = async (t) => { let sig = ''; const wait = []; for (const e of SPEC
   if (w > 0) n.style.width = w + 'px'; if (h > 0) n.style.height = h + 'px';
   n.style.transform = (rx ? 'perspective(900px) rotateX(' + rx + 'deg) ' : '') + (sc !== 1 ? 'scale(' + sc + ') ' : '') + (rot ? 'rotate(' + rot + 'deg)' : '');
   n.style.filter = bl > 0.05 ? 'blur(' + bl.toFixed(2) + 'px)' : '';
+  if (e.m2c) sig += window.__esAnim.seek(e, n, t); // trang anim.seek: tua tới giây của trang (anim.mjs)
   sig += e.id + ':' + op.toFixed(3) + ',' + Math.round(x * 2) + ',' + Math.round(y * 2) + ',' + Math.round(w) + ',' + Math.round(h) + ',' + sc.toFixed(4) + ',' + rot.toFixed(2) + ',' + bl.toFixed(2) + ',' + rx.toFixed(2) + ';'; }
   if (window.__esTick && window.__esTick(t * 1000)) sig += 'raf' + Math.round(t * 1000) + ';'; // có thư viện đang chạy → khung đổi
   const cm = camAt(t); if (cm) { const n = document.getElementById('cam'); n.style.transform = cm.tf;
@@ -343,7 +357,8 @@ window.ready = async () => { await Promise.race([document.fonts.ready, new Promi
   await Promise.all([...document.images].map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; setTimeout(r, 20000); }))));
   // CSS animation (vẽ nét, trôi nền, nhấp nháy…) dừng lại và tua theo thời gian của từng phần tử
   for (const e of SPEC) { const n = document.getElementById(e.id); if (!n) continue; e.anims = n.getAnimations({ subtree: true }); e.anims.forEach((a) => a.pause()); }
-  return true; };
+  // trang anim.seek: cổng chờ (data-ready, hợp đồng, font, ảnh) — khung đầu không bao giờ là trang dựng dở
+  return window.__esAnim ? window.__esAnim.ready(SPEC) : true; };
 `;
 
 async function loadChromium() {
@@ -380,10 +395,18 @@ async function localizeVideos() {
     e.width = w; e.height = h; const st = num(e.start, 0); const dur = num(e.duration, -1) > 0 ? num(e.duration) : s.D - st;
     const dir = path.join(work, 'vf' + k++); fs.mkdirSync(dir, { recursive: true });
     const sz = w + ':' + h; const fit = String(e.fit || 'cover');
+    const still = /\.(png|jpe?g|webp|gif|bmp)$/i.test(src); // ảnh → lặp thành video tĩnh (vẫn được fit cover/blur + keyframes)
+    // HDR (iPhone HLG / Dolby Vision, PQ) và gam BT.2020 → tuyến tính, đổi gam BT.709, tone map mobius (trắng tham chiếu 203 nit ≈ 90% trắng SDR, chừa chỗ cho vùng sáng tới 1000 nit) → hết xám bệt, tối
+    const c = still ? {} : probeColor(src); const ok = (v) => v && v !== 'unknown'; const hdr = /^(smpte2084|arib-std-b67)$/.test(c.color_transfer || ''); const wide = (hdr || c.color_primaries === 'bt2020') && hasZscale();
+    const tm = !wide ? '' : ',zscale=t=linear:npl=203:p=709' + (ok(c.color_transfer) ? '' : ':tin=709') + (ok(c.color_primaries) ? '' : ':pin=2020') + (ok(c.color_space) ? '' : ':min=2020_ncl')
+      + ',format=gbrpf32le' + (hdr ? ',tonemap=mobius:param=0.6:desat=0:peak=' + r3(1000 / 203) : '') + ',zscale=t=709:m=709:r=tv,format=yuv420p';
+    // Chrome đọc khung JPEG theo BT.601 full range → đổi ma trận nguồn sang BT.601 (giữ BT.709 thì lệch màu ~22/255); chưa gắn nhãn: HD coi là BT.709, SD là BT.601
+    // — trừ VP8/VP9 (webm quay màn hình / webcam bằng trình duyệt): không gắn nhãn mà vẫn là BT.601
+    const inM = wide ? 'bt709' : ok(c.color_space) ? 'auto' : /^vp[89]$/.test(c.codec_name || '') ? 'bt601' : num(c.width) >= 1280 || num(c.height) > 576 ? 'bt709' : 'bt601';
     const vf = 'fps=' + FPS + ',' + (fit === 'contain' ? 'scale=' + sz + ':force_original_aspect_ratio=decrease,pad=' + sz + ':(ow-iw)/2:(oh-ih)/2:color=black'
       : fit === 'blur' ? 'split[a][b];[a]scale=' + sz + ':force_original_aspect_ratio=increase,crop=' + sz + ',boxblur=28:2,eq=brightness=-0.06[bg];[b]scale=' + sz + ':force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2'
-        : 'scale=' + sz + ':force_original_aspect_ratio=increase,crop=' + sz) + (e.flip ? ',hflip' : '') + ',format=yuvj420p';
-    const still = /\.(png|jpe?g|webp|gif|bmp)$/i.test(src); // ảnh → lặp thành video tĩnh (vẫn được fit cover/blur + keyframes)
+        : 'scale=' + sz + ':force_original_aspect_ratio=increase,crop=' + sz) + (e.flip ? ',hflip' : '') + tm
+      + ',scale=in_color_matrix=' + inM + ':out_color_matrix=bt601:out_range=pc,format=yuvj420p';
     await run(FFMPEG, ['-y', '-v', 'error', ...(still ? ['-loop', '1'] : ['-ss', String(r3(Math.max(0, num(e.seek, 0))))]), '-i', src, '-t', String(r3(dur + 2 / FPS)), '-vf', vf, '-q:v', '3', '-frames:v', String(Math.ceil(dur * FPS) + 1), path.join(dir, '%05d.jpg')]);
     const n = fs.readdirSync(dir).length; if (!n) throw new Error('video không có khung hình: ' + e.src);
     e._vf = { dir, n };
@@ -403,16 +426,17 @@ async function renderScenes() {
       const s = scenes[next++];
       const t0 = Date.now();
       const docPath = path.join(work, 'scene' + s.i + '.html');
+      const wd = ANIM.budget(s); // > 0 chỉ khi cảnh có phần tử anim: chó canh trang treo (iframe chạy chung luồng với trang cảnh)
       fs.writeFileSync(docPath, sceneDoc(s, head));
       await page.goto('file://' + docPath, { waitUntil: 'load', timeout: 60000 }).catch(() => {});
-      await page.evaluate(() => window.ready());
+      ANIM.afterReady(s, await ANIM.watch(page.evaluate(() => window.ready()), wd, 'ready()').catch((err) => { throw ANIM.sceneError(s, err); }), log);
       s.file = path.join(work, 'seg' + String(s.i).padStart(3, '0') + '.mp4');
       const ff = spawn(FFMPEG, ['-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-vf', TO709, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p', ...TAG709, '-r', String(FPS), s.file], { stdio: ['pipe', 'inherit', 'inherit'] });
       const done = new Promise((res, rej) => ff.on('close', (c) => (c === 0 ? res() : rej(new Error('ffmpeg scene ' + s.i + ' exit ' + c)))));
       // khung hình không đổi (đoạn giữ hình) → dùng lại ảnh trước, đỡ chụp lại
       let prevSig = null; let prevBuf = null; let shots = 0;
       for (let f = 0; f < s.frames; f++) {
-        const sig = await page.evaluate((t) => window.seek(t), f / FPS);
+        const sig = await ANIM.watch(page.evaluate((t) => window.seek(t), f / FPS), wd && 30000, 'frame ' + f).catch((err) => { throw ANIM.sceneError(s, err); });
         let buf = prevBuf;
         if (sig !== prevSig || !buf) {
           const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 90, optimizeForSpeed: true, clip: { x: 0, y: 0, width: W, height: H, scale: 1 } });
@@ -421,6 +445,7 @@ async function renderScenes() {
         if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
       }
       s.shots = shots;
+      if (wd) ANIM.afterScene(s, await page.evaluate(() => window.__esAnim.report()), log);
       ff.stdin.end();
       await done;
       log('scene', s.i + 1 + '/' + scenes.length, s.D.toFixed(2) + 's', s.frames, 'frames,', s.shots, 'shots', ((Date.now() - t0) / 1000).toFixed(1) + 's');
