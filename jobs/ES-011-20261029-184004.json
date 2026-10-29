@@ -1,0 +1,203 @@
+{
+ "id": "ES-011-20261029-184004",
+ "kind": "spec",
+ "standard": "es-short/1",
+ "core": "1.1.0",
+ "spec_hash": "711f4073b585e1",
+ "spec": {
+  "version": "es.creative/1.1",
+  "id": "ES-011-20261029-184004",
+  "lang": "en",
+  "format": "9:16",
+  "brand": "ethan-studio",
+  "content_type": "tip",
+  "genre": "explainer",
+  "structure": "result_first",
+  "topic": "How to build a web app with AI",
+  "promise": "Build a functional web app without coding knowledge",
+  "target_duration": 45,
+  "energy": "normal",
+  "voice": {
+   "id": "andrew",
+   "rate": 6
+  },
+  "music": {
+   "mood": "tech",
+   "volume": 0.14
+  },
+  "captions": "auto",
+  "palette": "auto",
+  "hook": {
+   "say": "No coding background needed for this app.",
+   "text": "Built with AI",
+   "items": [
+    "Simple stack",
+    "Clear prompts",
+    "Working app"
+   ],
+   "emphasis": [
+    "AI"
+   ],
+   "visual_kind": "code",
+   "hook_type": "result_first",
+   "layout": "hook_result"
+  },
+  "scenes": [
+   {
+    "say": "I wanted a tool to organize my client tasks without paying monthly subscriptions.",
+    "text": "The problem",
+    "bubbles": [],
+    "emphasis": [
+     "subscriptions"
+    ],
+    "visual_kind": "code",
+    "visual_hint": "bold title card on brand background",
+    "role": "context",
+    "layout": "title_card"
+   },
+   {
+    "say": "The stack is simple. HTML and JavaScript for the front, plus a lightweight database.",
+    "text": "The tech stack",
+    "items": [
+     "HTML and JS",
+     "Local storage",
+     "AI code generator"
+    ],
+    "bubbles": [],
+    "visual_kind": "code",
+    "visual_hint": "three items appear step by step",
+    "role": "point",
+    "layout": "list_steps"
+   },
+   {
+    "say": "Instead of asking for a full project, I asked for one feature at a time.",
+    "text": "Prompt strategy",
+    "prompt": "Build a clean HTML page with a form to submit client tasks.",
+    "bubbles": [],
+    "emphasis": [
+     "one feature"
+    ],
+    "visual_kind": "code",
+    "visual_hint": "prompt types inside an app frame",
+    "role": "demo",
+    "layout": "prompt_box"
+   },
+   {
+    "say": "The tricky part was when the AI broke old features while adding new ones.",
+    "text": "Where AI fails",
+    "items": [
+     "AI overwrote old code",
+     "Fixed with version backups"
+    ],
+    "bubbles": [],
+    "visual": {
+     "prompt": "a split comparison card slides in",
+     "kind": "ai_image"
+    },
+    "visual_kind": "motion",
+    "visual_hint": "comparison between broken and fixed code",
+    "sfx_cue": "hit",
+    "role": "rehook",
+    "layout": "compare"
+   },
+   {
+    "say": "The fix is easy. Save your working code before every single new prompt.",
+    "text": "The golden rule",
+    "items": [
+     "Save working draft",
+     "Prompt one feature",
+     "Test before moving on"
+    ],
+    "bubbles": [],
+    "visual_kind": "code",
+    "visual_hint": "checkboxes tick one by one",
+    "role": "point",
+    "layout": "checklist"
+   },
+   {
+    "say": "Now the entire tool runs cleanly right inside my browser.",
+    "text": "Working app",
+    "icon": "rocket",
+    "bubbles": [],
+    "emphasis": [
+     "browser"
+    ],
+    "visual": {
+     "prompt": "a rocket icon glows above a clean app window",
+     "kind": "ai_image"
+    },
+    "visual_kind": "motion",
+    "visual_hint": "rocket icon with clean app display",
+    "sfx_cue": "ding",
+    "role": "payoff",
+    "layout": "icon_point"
+   }
+  ],
+  "cta": {
+   "action": "lab",
+   "say": "Get the prompts in our Telegram Lab.",
+   "text": "Free prompts in the Lab",
+   "layout": "cta_card"
+  },
+  "title": "Build a web app with AI",
+  "keywords": [
+   "AI app",
+   "no code",
+   "prompts"
+  ],
+  "cover": {
+   "title": "Build Apps with AI",
+   "from": "hook",
+   "emphasis": "AI",
+   "kicker": "AI TUTORIAL",
+   "alt_title": "No Code Web App"
+  },
+  "hooks_alt": [
+   {
+    "hook_type": "mistake",
+    "say": "Stop trying to code full apps with one prompt.",
+    "text": "Stop mega prompts",
+    "layout": "hook_kinetic"
+   },
+   {
+    "hook_type": "question",
+    "say": "Want to build your own web app this weekend?",
+    "text": "Build an app?",
+    "layout": "hook_question"
+   }
+  ],
+  "notes_vi": "Video hướng dẫn cách tự xây dựng ứng dụng web đơn giản bằng AI theo từng bước mà không cần biết lập trình."
+ },
+ "meta": {
+  "source": "n8n ES Short",
+  "tid": "ES-011",
+  "attempt": 1,
+  "max_attempts": 3,
+  "facts": [],
+  "review": false,
+  "salvaged": [],
+  "estimate": {
+   "total": 39.96,
+   "hook_end": 2.8,
+   "words": 93
+  },
+  "warnings": [
+   "W_HOOK_EDGE /hook/say",
+   "W_TEXT_ECHO /scenes/1/text",
+   "W_GENERIC /",
+   "W_NO_FACTS /"
+  ],
+  "created_at": "2026-10-29T11:40:04.941Z",
+  "pushed_at": "2026-10-29T11:40:23.490Z"
+ },
+ "client": {
+  "tid": "ES-011",
+  "topic": "How I built a web app in a weekend with AI",
+  "hook": "No CS degree. One weekend. A working app.",
+  "key_points": "Stack, prompts, what AI got wrong, time spent",
+  "cta": "Get the free version in the Lab (link in bio)",
+  "content_type": "Build in Public",
+  "lang": "en",
+  "origin": "post"
+ }
+}
