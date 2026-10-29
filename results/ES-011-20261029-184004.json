@@ -1,0 +1,543 @@
+{
+  "id": "ES-011-20261029-184004",
+  "status": "done",
+  "duration": 33.56,
+  "width": 1080,
+  "height": 1920,
+  "file": "ES-011-20261029-184004.mp4",
+  "render_seconds": 156,
+  "creative": {
+    "palette": "neon_pink",
+    "music": "es-default-01",
+    "captions": "pop",
+    "seed": "711f4073b585e1",
+    "layouts": [
+      "hook_result",
+      "title_card",
+      "list_steps",
+      "prompt_box",
+      "compare",
+      "checklist",
+      "icon_point",
+      "cta_card"
+    ],
+    "transitions": [
+      "cut",
+      "cut",
+      "whip-up",
+      "smoothleft",
+      "zoom",
+      "whip-up",
+      "whip",
+      "circleopen"
+    ],
+    "sfx": 18,
+    "hook_type": "result_first",
+    "content_type": "tip"
+  },
+  "scenes": [
+    {
+      "t": 0,
+      "d": 2.267
+    },
+    {
+      "t": 2.267,
+      "d": 5.067
+    },
+    {
+      "t": 7.093,
+      "d": 6.233,
+      "trans": "whip-up",
+      "td": 0.24
+    },
+    {
+      "t": 13.087,
+      "d": 4.433,
+      "trans": "smoothleft",
+      "td": 0.24
+    },
+    {
+      "t": 17.28,
+      "d": 4.367,
+      "trans": "zoom",
+      "td": 0.24
+    },
+    {
+      "t": 21.407,
+      "d": 5.467,
+      "trans": "whip-up",
+      "td": 0.24
+    },
+    {
+      "t": 26.633,
+      "d": 4.067,
+      "trans": "whip",
+      "td": 0.24
+    },
+    {
+      "t": 30.46,
+      "d": 3.1,
+      "trans": "circleopen",
+      "td": 0.24
+    }
+  ],
+  "voice_track": [
+    {
+      "scene": 0,
+      "start": 0.144,
+      "end": 1.913,
+      "words": 7,
+      "dur": 2.208,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 1,
+      "start": 2.481,
+      "end": 6.844,
+      "words": 13,
+      "dur": 4.8,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 2,
+      "start": 7.308,
+      "end": 12.779,
+      "words": 14,
+      "dur": 5.904,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 3,
+      "start": 13.301,
+      "end": 16.815,
+      "words": 15,
+      "dur": 3.96,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 4,
+      "start": 17.494,
+      "end": 21.209,
+      "words": 14,
+      "dur": 4.152,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 5,
+      "start": 21.621,
+      "end": 26.326,
+      "words": 13,
+      "dur": 5.136,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 6,
+      "start": 26.848,
+      "end": 29.925,
+      "words": 10,
+      "dur": 3.504,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 7,
+      "start": 30.674,
+      "end": 32.325,
+      "words": 7,
+      "dur": 2.088,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    }
+  ],
+  "fps": 30,
+  "finished_at": "2026-10-29T11:44:46.618Z",
+  "cover": {
+    "mode": "designed",
+    "title": "Build Apps with AI",
+    "style": "hook_result_first",
+    "file": "ES-011-20261029-184004.cover.jpg",
+    "file_3x4": "ES-011-20261029-184004.cover-3x4.jpg",
+    "file_1x1": "ES-011-20261029-184004.cover-1x1.jpg",
+    "alt": {
+      "title": "No Code Web App",
+      "file": "ES-011-20261029-184004.cover-b.jpg",
+      "file_3x4": "ES-011-20261029-184004.cover-b-3x4.jpg",
+      "file_1x1": "ES-011-20261029-184004.cover-b-1x1.jpg"
+    },
+    "thumb_offset_ms": 2067,
+    "w": 1080,
+    "h": 1920,
+    "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-011-20261029-184004.cover.jpg",
+    "url_3x4": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-011-20261029-184004.cover-3x4.jpg",
+    "url_1x1": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-011-20261029-184004.cover-1x1.jpg"
+  },
+  "hook": {
+    "box": {
+      "x": 0,
+      "y": 380,
+      "w": 1080,
+      "h": 950
+    },
+    "ink": "#FFFFFF",
+    "accent": "#FF2E93",
+    "bg": "#0B0510",
+    "type": "result_first",
+    "layout": "hook_result",
+    "headline": "Built with AI",
+    "voice_start": 0.144,
+    "voice_end": 1.913,
+    "first_cut": 2.267,
+    "rate": 6
+  },
+  "kind": "spec",
+  "spec_hash": "711f4073b585e1",
+  "core": "1.1.0",
+  "spec_core": "1.1.0",
+  "attempt": 1,
+  "max_attempts": 3,
+  "client": {
+    "tid": "ES-011",
+    "topic": "How I built a web app in a weekend with AI",
+    "hook": "No CS degree. One weekend. A working app.",
+    "key_points": "Stack, prompts, what AI got wrong, time spent",
+    "cta": "Get the free version in the Lab (link in bio)",
+    "content_type": "Build in Public",
+    "lang": "en",
+    "origin": "post"
+  },
+  "title": "Build a web app with AI",
+  "spec": {
+    "version": "es.creative/1.1",
+    "id": "ES-011-20261029-184004",
+    "lang": "en",
+    "format": "9:16",
+    "brand": "ethan-studio",
+    "content_type": "tip",
+    "genre": "explainer",
+    "structure": "result_first",
+    "topic": "How to build a web app with AI",
+    "promise": "Build a functional web app without coding knowledge",
+    "target_duration": 45,
+    "energy": "normal",
+    "voice": {
+      "id": "andrew",
+      "rate": 6
+    },
+    "music": {
+      "mood": "tech",
+      "volume": 0.14
+    },
+    "captions": "auto",
+    "palette": "auto",
+    "hook": {
+      "say": "No coding background needed for this app.",
+      "text": "Built with AI",
+      "items": [
+        "Simple stack",
+        "Clear prompts",
+        "Working app"
+      ],
+      "emphasis": [
+        "AI"
+      ],
+      "visual_kind": "code",
+      "hook_type": "result_first",
+      "layout": "hook_result"
+    },
+    "scenes": [
+      {
+        "say": "I wanted a tool to organize my client tasks without paying monthly subscriptions.",
+        "text": "The problem",
+        "bubbles": [],
+        "emphasis": [
+          "subscriptions"
+        ],
+        "visual_kind": "code",
+        "visual_hint": "bold title card on brand background",
+        "role": "context",
+        "layout": "title_card"
+      },
+      {
+        "say": "The stack is simple. HTML and JavaScript for the front, plus a lightweight database.",
+        "text": "The tech stack",
+        "items": [
+          "HTML and JS",
+          "Local storage",
+          "AI code generator"
+        ],
+        "bubbles": [],
+        "visual_kind": "code",
+        "visual_hint": "three items appear step by step",
+        "role": "point",
+        "layout": "list_steps"
+      },
+      {
+        "say": "Instead of asking for a full project, I asked for one feature at a time.",
+        "text": "Prompt strategy",
+        "prompt": "Build a clean HTML page with a form to submit client tasks.",
+        "bubbles": [],
+        "emphasis": [
+          "one feature"
+        ],
+        "visual_kind": "code",
+        "visual_hint": "prompt types inside an app frame",
+        "role": "demo",
+        "layout": "prompt_box"
+      },
+      {
+        "say": "The tricky part was when the AI broke old features while adding new ones.",
+        "text": "Where AI fails",
+        "items": [
+          "AI overwrote old code",
+          "Fixed with version backups"
+        ],
+        "bubbles": [],
+        "visual": {
+          "prompt": "a split comparison card slides in",
+          "kind": "ai_image"
+        },
+        "visual_kind": "motion",
+        "visual_hint": "comparison between broken and fixed code",
+        "sfx_cue": "hit",
+        "role": "rehook",
+        "layout": "compare"
+      },
+      {
+        "say": "The fix is easy. Save your working code before every single new prompt.",
+        "text": "The golden rule",
+        "items": [
+          "Save working draft",
+          "Prompt one feature",
+          "Test before moving on"
+        ],
+        "bubbles": [],
+        "visual_kind": "code",
+        "visual_hint": "checkboxes tick one by one",
+        "role": "point",
+        "layout": "checklist"
+      },
+      {
+        "say": "Now the entire tool runs cleanly right inside my browser.",
+        "text": "Working app",
+        "icon": "rocket",
+        "bubbles": [],
+        "emphasis": [
+          "browser"
+        ],
+        "visual": {
+          "prompt": "a rocket icon glows above a clean app window",
+          "kind": "ai_image"
+        },
+        "visual_kind": "motion",
+        "visual_hint": "rocket icon with clean app display",
+        "sfx_cue": "ding",
+        "role": "payoff",
+        "layout": "icon_point"
+      }
+    ],
+    "cta": {
+      "action": "lab",
+      "say": "Get the prompts in our Telegram Lab.",
+      "text": "Free prompts in the Lab",
+      "layout": "cta_card"
+    },
+    "title": "Build a web app with AI",
+    "keywords": [
+      "AI app",
+      "no code",
+      "prompts"
+    ],
+    "cover": {
+      "title": "Build Apps with AI",
+      "from": "hook",
+      "emphasis": "AI",
+      "kicker": "AI TUTORIAL",
+      "alt_title": "No Code Web App"
+    },
+    "hooks_alt": [
+      {
+        "hook_type": "mistake",
+        "say": "Stop trying to code full apps with one prompt.",
+        "text": "Stop mega prompts",
+        "layout": "hook_kinetic"
+      },
+      {
+        "hook_type": "question",
+        "say": "Want to build your own web app this weekend?",
+        "text": "Build an app?",
+        "layout": "hook_question"
+      }
+    ],
+    "notes_vi": "Video hướng dẫn cách tự xây dựng ứng dụng web đơn giản bằng AI theo từng bước mà không cần biết lập trình."
+  },
+  "timing": {
+    "estimate": 39.96,
+    "after_tts": 33.56,
+    "rates": {
+      "hook": 6,
+      "body": 6
+    },
+    "log": []
+  },
+  "qa": {
+    "pass": true,
+    "score": 10,
+    "lufs": -14.6,
+    "issues": []
+  },
+  "standard": {
+    "standard": "es-short/1",
+    "pass": true,
+    "report_only": false,
+    "checks": [
+      {
+        "id": "S1",
+        "level": "error",
+        "ok": true,
+        "value": 33.56,
+        "limit": "30–60 s"
+      },
+      {
+        "id": "S2",
+        "level": "error",
+        "ok": true,
+        "value": 1.913,
+        "limit": "≤ 3 s"
+      },
+      {
+        "id": "S3",
+        "level": "warn",
+        "ok": true,
+        "value": 0.144,
+        "limit": "≤ 0.35 s"
+      },
+      {
+        "id": "S4",
+        "level": "error",
+        "ok": true,
+        "value": {
+          "sd": 41.42,
+          "mean": 31.76
+        },
+        "limit": "sd ≥ 10, not black/white"
+      },
+      {
+        "id": "S4b",
+        "level": "error",
+        "ok": true,
+        "value": {
+          "ink": 5.9,
+          "contrast": 17.92,
+          "keep": 92.01,
+          "drift": 15.14,
+          "at": 1.91
+        },
+        "limit": "chữ ≥ 4 %, tương phản ≥ 3:1, giữ ≥ 60 %"
+      },
+      {
+        "id": "S5",
+        "level": "warn",
+        "ok": true,
+        "value": 1.11,
+        "limit": "≥ 1"
+      },
+      {
+        "id": "S6",
+        "level": "warn",
+        "ok": true,
+        "value": 2.267,
+        "limit": "≤ 3.6 s"
+      },
+      {
+        "id": "S7",
+        "level": "warn",
+        "ok": true,
+        "value": 1.1,
+        "limit": "< 2.5 s still"
+      },
+      {
+        "id": "S8",
+        "level": "error",
+        "ok": true,
+        "value": [
+          "1080,1920",
+          "1080,1440",
+          "1080,1080"
+        ],
+        "limit": "9:16 (+ 3:4 + 1:1) jpg < 8 MB"
+      },
+      {
+        "id": "S13",
+        "level": "info",
+        "ok": true,
+        "value": 19.52,
+        "limit": "≤ 32 (unrelated scenes ≈ 45+)"
+      }
+    ],
+    "failed": []
+  },
+  "warnings": [
+    {
+      "code": "W_HOOK_EDGE",
+      "path": "/hook/say",
+      "msg": "hook ends at ≈2.8 s (7 words) — ≤ 6 words / ≤ 2.6 s hits harder",
+      "vi": "hook sát 3s"
+    },
+    {
+      "code": "W_TEXT_ECHO",
+      "path": "/scenes/1/text",
+      "msg": "cảnh 2 text repeats 67 % of its spoken line — show the keyword or number, not the transcript",
+      "vi": "cảnh 2: chữ trên màn lặp lời đọc"
+    },
+    {
+      "code": "W_VISUAL_CI",
+      "path": "/scenes/3/visual",
+      "msg": "AI visual without src: es-render CI has no AI keys → the scene uses a code layout",
+      "vi": "cảnh 4 không có hình AI → dùng đồ hoạ"
+    },
+    {
+      "code": "W_VISUAL_CI",
+      "path": "/scenes/5/visual",
+      "msg": "AI visual without src: es-render CI has no AI keys → the scene uses a code layout",
+      "vi": "cảnh 6 không có hình AI → dùng đồ hoạ"
+    },
+    {
+      "code": "W_GENERIC",
+      "path": "/",
+      "msg": "only 0 concrete token(s) (a digit or a cited FACT) — name the real number, step count or situation",
+      "vi": "kịch bản còn chung chung (ít con số / dữ kiện cụ thể)"
+    },
+    {
+      "code": "W_NO_FACTS",
+      "path": "/",
+      "msg": "no FACTS were given — the script only tells the steps (no numbers or results)",
+      "vi": "Chưa có số liệu thật — kịch bản chỉ kể các bước. Trả lời “số: …” để thêm (vd “số: 1.200 khách đang dùng”)"
+    }
+  ],
+  "fixes": [],
+  "salvaged": null,
+  "review": false,
+  "post_hint": {
+    "hook": "No coding background needed for this app.",
+    "headline": "Built with AI",
+    "promise": "Build a functional web app without coding knowledge",
+    "cover_title": "Build Apps with AI",
+    "topic": "How to build a web app with AI"
+  },
+  "render_total_seconds": 219,
+  "outcome": "post",
+  "publishable": true,
+  "summary_vi": "✅ Video ES·2 sẵn sàng · \"Build a web app with AI\" · 34s · hook 1.913s · QA 10/10",
+  "post_ok": true,
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-011-20261029-184004.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/40867190388",
+  "cover_url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-011-20261029-184004.cover.jpg",
+  "cover_3x4_url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-011-20261029-184004.cover-3x4.jpg",
+  "cover_1x1_url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-011-20261029-184004.cover-1x1.jpg"
+}
