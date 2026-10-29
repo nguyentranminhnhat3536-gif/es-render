@@ -1,0 +1,550 @@
+{
+  "id": "ES-AI-20261029-20261029-180054-a2",
+  "status": "done",
+  "duration": 40.267,
+  "width": 1080,
+  "height": 1920,
+  "file": "ES-AI-20261029-20261029-180054-a2.mp4",
+  "render_seconds": 223,
+  "creative": {
+    "palette": "paper_light",
+    "music": "es-default-01",
+    "captions": "boxed-word",
+    "seed": "55c56384e8c7cf",
+    "layouts": [
+      "hook_number",
+      "icon_point",
+      "list_steps",
+      "title_card",
+      "checklist",
+      "compare",
+      "cta_card"
+    ],
+    "transitions": [
+      "cut",
+      "cut",
+      "whip-up",
+      "whip",
+      "whip-up",
+      "zoom",
+      "circleopen"
+    ],
+    "sfx": 15,
+    "hook_type": "number",
+    "content_type": "tip"
+  },
+  "scenes": [
+    {
+      "t": 0,
+      "d": 2.5
+    },
+    {
+      "t": 2.5,
+      "d": 7.267
+    },
+    {
+      "t": 9.527,
+      "d": 8.1,
+      "trans": "whip-up",
+      "td": 0.24
+    },
+    {
+      "t": 17.387,
+      "d": 6.6,
+      "trans": "whip",
+      "td": 0.24
+    },
+    {
+      "t": 23.747,
+      "d": 8.2,
+      "trans": "whip-up",
+      "td": 0.24
+    },
+    {
+      "t": 31.707,
+      "d": 5.2,
+      "trans": "zoom",
+      "td": 0.24
+    },
+    {
+      "t": 36.667,
+      "d": 3.6,
+      "trans": "circleopen",
+      "td": 0.24
+    }
+  ],
+  "voice_track": [
+    {
+      "scene": 0,
+      "start": 0.215,
+      "end": 2.149,
+      "words": 6,
+      "dur": 2.448,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 1,
+      "start": 2.762,
+      "end": 9.247,
+      "words": 18,
+      "dur": 6.96,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 2,
+      "start": 9.741,
+      "end": 17.076,
+      "words": 18,
+      "dur": 7.776,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 3,
+      "start": 17.636,
+      "end": 23.544,
+      "words": 16,
+      "dur": 6.384,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 4,
+      "start": 24.008,
+      "end": 31.378,
+      "words": 19,
+      "dur": 7.872,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 5,
+      "start": 31.921,
+      "end": 36.096,
+      "words": 14,
+      "dur": 4.632,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    },
+    {
+      "scene": 6,
+      "start": 36.881,
+      "end": 39.004,
+      "words": 6,
+      "dur": 2.568,
+      "voice": "en-US-AndrewMultilingualNeural",
+      "rate": 6
+    }
+  ],
+  "fps": 30,
+  "finished_at": "2026-10-29T11:06:58.592Z",
+  "cover": {
+    "mode": "designed",
+    "title": "4 AI news updates today",
+    "style": "hook_number",
+    "file": "ES-AI-20261029-20261029-180054-a2.cover.jpg",
+    "file_3x4": "ES-AI-20261029-20261029-180054-a2.cover-3x4.jpg",
+    "file_1x1": "ES-AI-20261029-20261029-180054-a2.cover-1x1.jpg",
+    "alt": {
+      "title": "AI updates for your business",
+      "file": "ES-AI-20261029-20261029-180054-a2.cover-b.jpg",
+      "file_3x4": "ES-AI-20261029-20261029-180054-a2.cover-b-3x4.jpg",
+      "file_1x1": "ES-AI-20261029-20261029-180054-a2.cover-b-1x1.jpg"
+    },
+    "thumb_offset_ms": 1200,
+    "w": 1080,
+    "h": 1920,
+    "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-AI-20261029-20261029-180054-a2.cover.jpg",
+    "url_3x4": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-AI-20261029-20261029-180054-a2.cover-3x4.jpg",
+    "url_1x1": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-AI-20261029-20261029-180054-a2.cover-1x1.jpg"
+  },
+  "hook": {
+    "box": {
+      "x": 0,
+      "y": 380,
+      "w": 1080,
+      "h": 950
+    },
+    "ink": "#1A0B1F",
+    "accent": "#E0157A",
+    "bg": "#FFF4F9",
+    "type": "number",
+    "layout": "hook_number",
+    "headline": "4 AI updates today",
+    "voice_start": 0.215,
+    "voice_end": 2.149,
+    "first_cut": 2.5,
+    "rate": 6
+  },
+  "kind": "spec",
+  "spec_hash": "55c56384e8c7cf",
+  "core": "1.1.0",
+  "spec_core": "1.1.0",
+  "attempt": 2,
+  "max_attempts": 3,
+  "client": {
+    "tid": "AI-20261029",
+    "topic": "AI news today (Oct 29): Google expands AI Search ads globally as core ad growth slows; Anthropic launches tools showing companies what their AI spending buys; Google releases Gemini 4 Carbon, two weeks after Gemini 4 Argon; OpenAI says its Dots assistant will roll out more widely in Europe soon",
+    "hook": "Four AI updates that matter for your business today",
+    "key_points": "Google expands AI Search ads globally as core ad growth slows: Google is expanding ads in AI Search worldwide, announced with earnings showing revenue up 25% to $127.6 billion. If you run search ads, watch how this changes where they appear.\nAnthropic launches tools showing companies what their AI spending buys: Anthropic now shows companies how users spend money on its models, ahead of a planned IPO. If your team pays for AI tools, usage reports help you see what is worth the cost.\nGoogle releases Gemini 4 Carbon, two weeks after Gemini 4 Argon: Gemini 4 Carbon tops the Artificial Analysis Intelligence Index v5 with 59 points, with gains in coding and agent tasks. Ars Technica calls it a slightly better Argon, so no need to rush.\nOpenAI says its Dots assistant will roll out more widely in Europe soon: At DevDay Exchange in Berlin, OpenAI said its AI assistant Dots should roll out more widely in Europe in a few weeks. European small businesses may soon get another assistant option.",
+    "cta": "Join the Lab on Telegram (link in bio)",
+    "content_type": "AI Quick Win",
+    "notes": "Bản tin AI tự động 7:00 New York — nguồn: TechCrunch, The Decoder",
+    "lang": "en",
+    "origin": "post"
+  },
+  "title": "4 AI updates for your business",
+  "spec": {
+    "version": "es.creative/1.1",
+    "id": "ES-AI-20261029-20261029-180054-a2",
+    "lang": "en",
+    "format": "9:16",
+    "brand": "ethan-studio",
+    "content_type": "tip",
+    "genre": "list",
+    "structure": "list",
+    "topic": "Four AI news updates that impact small business today",
+    "promise": "Get the four AI updates that matter for your business today",
+    "target_duration": 45,
+    "energy": "normal",
+    "voice": {
+      "id": "andrew",
+      "rate": 6
+    },
+    "music": {
+      "mood": "tech",
+      "volume": 0.14
+    },
+    "captions": "auto",
+    "palette": "auto",
+    "hook": {
+      "say": "Four AI updates that matter today.",
+      "text": "4 AI updates today",
+      "value": "4",
+      "emphasis": [
+        "AI"
+      ],
+      "visual_kind": "code",
+      "hook_type": "number",
+      "layout": "hook_number"
+    },
+    "scenes": [
+      {
+        "say": "First, Google is expanding AI Search ads worldwide. If you run search ads, watch where your budget lands.",
+        "text": "Google AI Search ads",
+        "sub": "Global expansion",
+        "icon": "search",
+        "bubbles": [],
+        "emphasis": [
+          "Search ads"
+        ],
+        "visual_kind": "code",
+        "visual_hint": "search icon with global ads headline",
+        "role": "point",
+        "layout": "icon_point"
+      },
+      {
+        "say": "Second, Anthropic launched tools to show team AI spending. You can finally track which team uses which model.",
+        "text": "Track AI spending",
+        "items": [
+          "Usage by team",
+          "Model breakdown",
+          "Cost control"
+        ],
+        "bubbles": [],
+        "emphasis": [
+          "AI spending"
+        ],
+        "visual_kind": "code",
+        "visual_hint": "three steps for cost tracking land in sequence",
+        "role": "point",
+        "layout": "list_steps"
+      },
+      {
+        "say": "Third, Google released Gemini Four Carbon. It brings small coding gains, so no need to rush.",
+        "text": "Gemini 4 Carbon",
+        "sub": "Slight upgrade",
+        "bubbles": [],
+        "emphasis": [
+          "Carbon"
+        ],
+        "visual": {
+          "prompt": "a sleek model card slides in with subtle shimmer",
+          "kind": "ai_image"
+        },
+        "visual_kind": "motion",
+        "visual_hint": "bold title card with motion effect",
+        "sfx_cue": "hit",
+        "role": "rehook",
+        "layout": "title_card"
+      },
+      {
+        "say": "Fourth, OpenAI is rolling out its Dots assistant to Europe soon. European small businesses get another daily assistant option.",
+        "text": "OpenAI Dots in Europe",
+        "items": [
+          "Rolling out soon",
+          "Berlin announcement",
+          "New assistant choice"
+        ],
+        "bubbles": [],
+        "emphasis": [
+          "Dots"
+        ],
+        "visual_kind": "code",
+        "visual_hint": "checklist items tick off one by one",
+        "sfx_cue": "pop",
+        "role": "point",
+        "layout": "checklist"
+      },
+      {
+        "say": "AI tools move fast, but you only need the ones that save real work.",
+        "text": "Filter the noise",
+        "items": [
+          "Daily hype cycle",
+          "Tools that build work"
+        ],
+        "bubbles": [],
+        "emphasis": [
+          "real work"
+        ],
+        "visual": {
+          "prompt": "noise fades away leaving essential tools highlighted",
+          "kind": "ai_image"
+        },
+        "visual_kind": "motion",
+        "visual_hint": "before after comparison card held on screen",
+        "sfx_cue": "ding",
+        "role": "payoff",
+        "layout": "compare"
+      }
+    ],
+    "cta": {
+      "action": "lab",
+      "say": "Join our free Telegram Lab today.",
+      "text": "Free tools in the Lab",
+      "layout": "cta_card"
+    },
+    "title": "4 AI updates for your business",
+    "keywords": [
+      "AI news",
+      "Google Search",
+      "Anthropic",
+      "OpenAI Dots"
+    ],
+    "cover": {
+      "title": "4 AI news updates today",
+      "from": "hook",
+      "emphasis": "AI news",
+      "kicker": "AI NEWS",
+      "alt_title": "AI updates for your business"
+    },
+    "hooks_alt": [
+      {
+        "hook_type": "curiosity_gap",
+        "say": "Here is what changed in AI today.",
+        "text": "What changed today",
+        "layout": "hook_kinetic"
+      },
+      {
+        "hook_type": "mistake",
+        "say": "Stop ignoring these new AI releases.",
+        "text": "Don't miss these",
+        "layout": "hook_kinetic"
+      }
+    ],
+    "post": {
+      "caption": "4 quick AI updates that matter for small businesses and everyday work today.",
+      "hashtags": [
+        "#AINews",
+        "#SmallBusiness",
+        "#ETHANSTUDIO",
+        "#TechUpdates"
+      ]
+    },
+    "notes_vi": "Bản tin AI hôm nay: Google mở rộng quảng cáo AI Search toàn cầu, Anthropic ra công cụ quản lý chi phí AI, Google ra mắt Gemini 4 Carbon và OpenAI đưa trợ lý Dots tới Châu Âu."
+  },
+  "timing": {
+    "estimate": 42.19,
+    "after_tts": 40.267,
+    "rates": {
+      "hook": 6,
+      "body": 6
+    },
+    "log": []
+  },
+  "qa": {
+    "pass": true,
+    "score": 10,
+    "lufs": -14.4,
+    "issues": []
+  },
+  "standard": {
+    "standard": "es-short/1",
+    "pass": true,
+    "report_only": false,
+    "checks": [
+      {
+        "id": "S1",
+        "level": "error",
+        "ok": true,
+        "value": 40.27,
+        "limit": "30–60 s"
+      },
+      {
+        "id": "S2",
+        "level": "error",
+        "ok": true,
+        "value": 2.149,
+        "limit": "≤ 3 s"
+      },
+      {
+        "id": "S3",
+        "level": "warn",
+        "ok": true,
+        "value": 0.215,
+        "limit": "≤ 0.35 s"
+      },
+      {
+        "id": "S4",
+        "level": "error",
+        "ok": true,
+        "value": {
+          "sd": 49.9,
+          "mean": 205.47
+        },
+        "limit": "sd ≥ 10, not black/white"
+      },
+      {
+        "id": "S4b",
+        "level": "error",
+        "ok": true,
+        "value": {
+          "ink": 14.43,
+          "contrast": 3.97,
+          "keep": 87.24,
+          "drift": 10.63,
+          "at": 2.15
+        },
+        "limit": "chữ ≥ 4 %, tương phản ≥ 3:1, giữ ≥ 60 %"
+      },
+      {
+        "id": "S5",
+        "level": "warn",
+        "ok": true,
+        "value": 1.31,
+        "limit": "≥ 1"
+      },
+      {
+        "id": "S6",
+        "level": "warn",
+        "ok": true,
+        "value": 2.5,
+        "limit": "≤ 3.6 s"
+      },
+      {
+        "id": "S7",
+        "level": "warn",
+        "ok": true,
+        "value": 0.97,
+        "limit": "< 2.5 s still"
+      },
+      {
+        "id": "S8",
+        "level": "error",
+        "ok": true,
+        "value": [
+          "1080,1920",
+          "1080,1440",
+          "1080,1080"
+        ],
+        "limit": "9:16 (+ 3:4 + 1:1) jpg < 8 MB"
+      },
+      {
+        "id": "S13",
+        "level": "info",
+        "ok": true,
+        "value": 14.31,
+        "limit": "≤ 32 (unrelated scenes ≈ 45+)"
+      }
+    ],
+    "failed": []
+  },
+  "warnings": [
+    {
+      "code": "W_TEXT_ECHO",
+      "path": "/hook/text",
+      "msg": "hook text repeats 75 % of its spoken line — show the keyword or number, not the transcript",
+      "vi": "hook: chữ trên màn lặp lời đọc"
+    },
+    {
+      "code": "W_TEXT_ECHO",
+      "path": "/scenes/0/text",
+      "msg": "cảnh 1 text repeats 100 % of its spoken line — show the keyword or number, not the transcript",
+      "vi": "cảnh 1: chữ trên màn lặp lời đọc"
+    },
+    {
+      "code": "W_TEXT_ECHO",
+      "path": "/scenes/1/text",
+      "msg": "cảnh 2 text repeats 100 % of its spoken line — show the keyword or number, not the transcript",
+      "vi": "cảnh 2: chữ trên màn lặp lời đọc"
+    },
+    {
+      "code": "W_VISUAL_CI",
+      "path": "/scenes/2/visual",
+      "msg": "AI visual without src: es-render CI has no AI keys → the scene uses a code layout",
+      "vi": "cảnh 3 không có hình AI → dùng đồ hoạ"
+    },
+    {
+      "code": "W_TEXT_ECHO",
+      "path": "/scenes/2/text",
+      "msg": "cảnh 3 text repeats 67 % of its spoken line — show the keyword or number, not the transcript",
+      "vi": "cảnh 3: chữ trên màn lặp lời đọc"
+    },
+    {
+      "code": "W_TEXT_ECHO",
+      "path": "/scenes/3/text",
+      "msg": "cảnh 4 text repeats 75 % of its spoken line — show the keyword or number, not the transcript",
+      "vi": "cảnh 4: chữ trên màn lặp lời đọc"
+    },
+    {
+      "code": "W_VISUAL_CI",
+      "path": "/scenes/4/visual",
+      "msg": "AI visual without src: es-render CI has no AI keys → the scene uses a code layout",
+      "vi": "cảnh 5 không có hình AI → dùng đồ hoạ"
+    },
+    {
+      "code": "W_GENERIC",
+      "path": "/",
+      "msg": "only 1 concrete token(s) (a digit or a cited FACT) — name the real number, step count or situation",
+      "vi": "kịch bản còn chung chung (ít con số / dữ kiện cụ thể)"
+    },
+    {
+      "code": "W_NO_FACTS",
+      "path": "/",
+      "msg": "no FACTS were given — the script only tells the steps (no numbers or results)",
+      "vi": "Chưa có số liệu thật — kịch bản chỉ kể các bước. Trả lời “số: …” để thêm (vd “số: 1.200 khách đang dùng”)"
+    }
+  ],
+  "fixes": [],
+  "salvaged": null,
+  "review": false,
+  "post_hint": {
+    "hook": "Four AI updates that matter today.",
+    "headline": "4 AI updates today",
+    "promise": "Get the four AI updates that matter for your business today",
+    "cover_title": "4 AI news updates today",
+    "topic": "Four AI news updates that impact small business today"
+  },
+  "render_total_seconds": 283,
+  "outcome": "post",
+  "publishable": true,
+  "summary_vi": "✅ Video ES·2 sẵn sàng · \"4 AI updates for your business\" · 40s · hook 2.149s · QA 10/10",
+  "post_ok": true,
+  "url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-AI-20261029-20261029-180054-a2.mp4",
+  "run": "https://github.com/nguyentranminhnhat3536-gif/es-render/actions/runs/40862143470",
+  "cover_url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-AI-20261029-20261029-180054-a2.cover.jpg",
+  "cover_3x4_url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-AI-20261029-20261029-180054-a2.cover-3x4.jpg",
+  "cover_1x1_url": "https://github.com/nguyentranminhnhat3536-gif/es-render/releases/download/videos-2026-10/ES-AI-20261029-20261029-180054-a2.cover-1x1.jpg"
+}
