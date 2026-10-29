@@ -1,0 +1,766 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nguyentranminhnhat3536-gif/es-render/blob/main/spec/creative-spec.schema.json",
+  "title": "ETHAN STUDIO CreativeSpec es.creative/1 (standard es-short/1)",
+  "description": "The normalised spec (spec/core.cjs normalize()). The AI-facing structured-output schema is the flat variant from ESC.llmSchema(). Core 1.1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "lang",
+    "title",
+    "hook",
+    "scenes",
+    "cta",
+    "cover"
+  ],
+  "properties": {
+    "version": {
+      "const": "es.creative/1.1",
+      "description": "es.creative/1.x is read as es.creative/1; another major → W_VERSION and read as 1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$",
+      "description": "set by n8n / the bot (= job id); never trusted from the AI"
+    },
+    "lang": {
+      "enum": [
+        "en",
+        "vi"
+      ],
+      "default": "en"
+    },
+    "format": {
+      "enum": [
+        "9:16",
+        "16:9"
+      ],
+      "default": "9:16",
+      "description": "es-short/1 renders 9:16 only; 16:9 → E_FORMAT unless validate(spec,{formats}) allows it"
+    },
+    "brand": {
+      "type": "string",
+      "default": "ethan-studio",
+      "description": "brand kit: spec/brand/<brand>.json"
+    },
+    "content_type": {
+      "enum": [
+        "tip",
+        "how_to",
+        "list",
+        "tool_drop",
+        "lab_call",
+        "myth_fact",
+        "before_after",
+        "story"
+      ],
+      "default": "tip"
+    },
+    "genre": {
+      "enum": [
+        "list",
+        "explainer",
+        "promo",
+        "story",
+        "talking_head"
+      ],
+      "description": "core 1.1"
+    },
+    "structure": {
+      "enum": [
+        "pas",
+        "list",
+        "result_first",
+        "story",
+        "before_after",
+        "myth_fact",
+        "compare"
+      ],
+      "description": "core 1.1"
+    },
+    "topic": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "promise": {
+      "type": "string",
+      "maxLength": 120,
+      "description": "the one result the viewer gets (≤ 12 words)"
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 80,
+      "minLength": 1
+    },
+    "target_duration": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 60,
+      "default": 45,
+      "description": "informational; the estimate and the measured timeline are what is checked"
+    },
+    "energy": {
+      "default": "normal",
+      "description": "calm → render creative \"subtle\", fewer SFX, smooth transitions; high → +4 % voice rate"
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rate"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "andrew",
+            "ava",
+            "brian",
+            "emma",
+            "namminh",
+            "hoaimy"
+          ]
+        },
+        "rate": {
+          "type": "integer",
+          "minimum": -10,
+          "maximum": 15,
+          "description": "edge-tts rate %; default by energy 2/6/10; CI may raise the hook line to +20 %"
+        }
+      }
+    },
+    "music": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mood": {
+          "enum": [
+            "auto",
+            "upbeat",
+            "tech",
+            "chill",
+            "epic",
+            "none"
+          ],
+          "default": "auto"
+        },
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.4,
+          "default": 0.14
+        },
+        "track": {
+          "type": "string"
+        }
+      }
+    },
+    "captions": {
+      "enum": [
+        "auto",
+        "pop",
+        "boxed-word",
+        "one-word",
+        "none"
+      ],
+      "default": "auto"
+    },
+    "palette": {
+      "enum": [
+        "auto",
+        "neon_pink",
+        "violet_night",
+        "paper_light"
+      ],
+      "default": "auto"
+    },
+    "seed": {
+      "type": "string",
+      "maxLength": 40,
+      "description": "another seed = another visual variant of the same words"
+    },
+    "keywords": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "maxLength": 24
+      },
+      "description": "highlighted in the captions; derived from emphasis / numbers when missing"
+    },
+    "hook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "say",
+        "layout"
+      ],
+      "properties": {
+        "say": {
+          "type": "string",
+          "minLength": 0,
+          "x-words": [
+            2,
+            7
+          ],
+          "description": "spoken line (TTS): plain text, no URL/emoji/markup"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 48,
+          "description": "on-screen headline (hook: frame-0 headline, ≤ 6 words / 36 chars)"
+        },
+        "sub": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "icon": {
+          "type": "string",
+          "maxLength": 8,
+          "description": "one of bolt clock money chart check cross idea robot chat mail calendar cart tag star heart rocket shield lock gear search phone laptop doc folder link gift fire target users trophy camera pen (or one emoji)"
+        },
+        "prompt": {
+          "type": "string",
+          "maxLength": 220
+        },
+        "bubbles": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "from": {
+                "enum": [
+                  "them",
+                  "me"
+                ]
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 70
+              }
+            }
+          }
+        },
+        "emphasis": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "maxLength": 20
+          }
+        },
+        "visual": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "image",
+                "ai_image",
+                "ai_video",
+                "clip",
+                "footage"
+              ]
+            },
+            "src": {
+              "type": "string",
+              "pattern": "^(https|file)://|^[SB]\\d+$"
+            },
+            "prompt": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "clip": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "in": {
+              "type": "number",
+              "minimum": 0
+            },
+            "out": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "fit": {
+              "enum": [
+                "cover",
+                "contain",
+                "blur"
+              ]
+            }
+          }
+        },
+        "visual_kind": {
+          "enum": [
+            "code",
+            "motion",
+            "still",
+            "footage",
+            "talk"
+          ],
+          "description": "core 1.1: how the line is shown (code card / motion / still / footage / talk)"
+        },
+        "visual_hint": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "sfx_cue": {
+          "enum": [
+            "none",
+            "hit",
+            "riser",
+            "pop",
+            "ding"
+          ],
+          "default": "none"
+        },
+        "hold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "seconds kept after the voice; default by role"
+        },
+        "transition": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "layout": {
+          "enum": [
+            "hook_kinetic",
+            "hook_result",
+            "hook_number",
+            "hook_question"
+          ],
+          "description": "only these layouts exist for the hook part"
+        },
+        "hook_type": {
+          "enum": [
+            "result_first",
+            "mistake",
+            "number",
+            "question",
+            "before_after",
+            "pov",
+            "bold_claim",
+            "myth",
+            "curiosity_gap"
+          ],
+          "default": "bold_claim"
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "say",
+          "layout"
+        ],
+        "properties": {
+          "say": {
+            "type": "string",
+            "minLength": 0,
+            "x-words": [
+              4,
+              20
+            ],
+            "description": "spoken line (TTS): plain text, no URL/emoji/markup"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 48,
+            "description": "on-screen headline (hook: frame-0 headline, ≤ 6 words / 36 chars)"
+          },
+          "sub": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 8,
+            "description": "one of bolt clock money chart check cross idea robot chat mail calendar cart tag star heart rocket shield lock gear search phone laptop doc folder link gift fire target users trophy camera pen (or one emoji)"
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 220
+          },
+          "bubbles": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "enum": [
+                    "them",
+                    "me"
+                  ]
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 70
+                }
+              }
+            }
+          },
+          "emphasis": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "maxLength": 20
+            }
+          },
+          "visual": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "image",
+                  "ai_image",
+                  "ai_video",
+                  "clip",
+                  "footage"
+                ]
+              },
+              "src": {
+                "type": "string",
+                "pattern": "^(https|file)://|^[SB]\\d+$"
+              },
+              "prompt": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "clip": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "in": {
+                "type": "number",
+                "minimum": 0
+              },
+              "out": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "fit": {
+                "enum": [
+                  "cover",
+                  "contain",
+                  "blur"
+                ]
+              }
+            }
+          },
+          "visual_kind": {
+            "enum": [
+              "code",
+              "motion",
+              "still",
+              "footage",
+              "talk"
+            ],
+            "description": "core 1.1: how the line is shown (code card / motion / still / footage / talk)"
+          },
+          "visual_hint": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "sfx_cue": {
+            "enum": [
+              "none",
+              "hit",
+              "riser",
+              "pop",
+              "ding"
+            ],
+            "default": "none"
+          },
+          "hold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "seconds kept after the voice; default by role"
+          },
+          "transition": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "layout": {
+            "enum": [
+              "title_card",
+              "icon_point",
+              "quote",
+              "list_steps",
+              "checklist",
+              "stat",
+              "compare",
+              "prompt_box",
+              "chat_mock",
+              "media"
+            ],
+            "description": "only these layouts exist for the body part"
+          },
+          "role": {
+            "enum": [
+              "context",
+              "point",
+              "proof",
+              "demo",
+              "rehook",
+              "payoff"
+            ],
+            "default": "point"
+          }
+        }
+      },
+      "description": "body scenes between the hook and the CTA (hard 3–8, best 4–6)"
+    },
+    "cta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "say",
+        "text",
+        "layout",
+        "action"
+      ],
+      "properties": {
+        "say": {
+          "type": "string",
+          "maxLength": 220,
+          "x-words": [
+            3,
+            7
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "layout": {
+          "const": "cta_card"
+        },
+        "action": {
+          "enum": [
+            "lab",
+            "follow",
+            "comment",
+            "save"
+          ],
+          "default": "lab"
+        },
+        "keyword": {
+          "type": "string",
+          "maxLength": 16
+        }
+      }
+    },
+    "cover": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "from",
+        "kicker"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 32,
+          "minLength": 1,
+          "x-words": [
+            2,
+            5
+          ]
+        },
+        "alt_title": {
+          "type": "string",
+          "maxLength": 32,
+          "x-words": [
+            2,
+            5
+          ]
+        },
+        "emphasis": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "kicker": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "from": {
+          "enum": [
+            "hook",
+            "scene"
+          ],
+          "default": "hook"
+        },
+        "scene": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "hooks_alt": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "say"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "hook_type": {
+            "enum": [
+              "result_first",
+              "mistake",
+              "number",
+              "question",
+              "before_after",
+              "pov",
+              "bold_claim",
+              "myth",
+              "curiosity_gap"
+            ]
+          },
+          "say": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 36
+          },
+          "layout": {
+            "enum": [
+              "hook_kinetic",
+              "hook_result",
+              "hook_number",
+              "hook_question"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 10
+          },
+          "emphasis": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 20
+            }
+          }
+        }
+      },
+      "description": "two other hooks (other types, same promise) for the bot buttons"
+    },
+    "facts_used": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim",
+          "source"
+        ],
+        "properties": {
+          "claim": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^(FACTS#\\d{1,2}|owner)$|^.{1,20}$"
+          }
+        }
+      },
+      "description": "core 1.1: every number / result sentence cites FACTS#n (given by n8n node 1 / the bot) or \"owner\"; CI re-checks against job.meta.facts"
+    },
+    "production": {
+      "type": "object",
+      "description": "es-editor only: how the script is produced (stored, not hashed)"
+    },
+    "post": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "caption": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "hashtags": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "maxLength": 40
+          }
+        }
+      }
+    },
+    "notes_vi": {
+      "type": "string",
+      "maxLength": 600,
+      "description": "Vietnamese summary for the owner; not rendered, not hashed"
+    },
+    "client": {
+      "type": "object",
+      "description": "card passthrough set by n8n / the bot (≤ 8 KB, secret-like keys removed), never by the AI"
+    },
+    "footage": {
+      "type": "array",
+      "description": "es-editor only: clip catalogue a script refers to (visual.clip)"
+    }
+  }
+}

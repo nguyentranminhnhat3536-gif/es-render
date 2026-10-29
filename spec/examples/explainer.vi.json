@@ -1,0 +1,16 @@
+{"version":"es.creative/1.1","lang":"vi","content_type":"how_to","genre":"explainer","structure":"pas",
+ "topic":"Làm hoá đơn trên điện thoại bằng cách chụp ảnh tờ đơn","promise":"Chụp tờ đơn, app tự điền, bấm gửi cho khách","title":"Hoá đơn trong một chạm",
+ "energy":"normal","voice":"hoaimy","music":"chill","keywords":["hoá đơn","chụp ảnh","nhắc nợ"],
+ "hook":{"hook_type":"question","layout":"hook_kinetic","say":"Cuối tháng còn gõ hoá đơn bằng tay?","text":"Một tấm ảnh là xong","emphasis":"","value":"","items":[],"visual_kind":"code"},
+ "scenes":[
+  {"role":"context","layout":"title_card","say":"Gõ từng dòng tên khách, số tiền, ngày hẹn, sai một chỗ là làm lại cả tờ.","text":"Mất cả buổi tối","sub":"","items":[],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"một câu chữ lớn","sfx_cue":"none"},
+  {"role":"point","layout":"list_steps","say":"Giờ chỉ cần mở app, chụp tờ đơn, app tự đọc tên khách, số tiền và ngày hẹn.","text":"Ba bước","sub":"","items":["Mở app","Chụp tờ đơn","Kiểm tra lại"],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"các bước hiện lần lượt","sfx_cue":"pop"},
+  {"role":"demo","layout":"chat_mock","say":"Bấm gửi, khách nhận một đường link và tự xem hoá đơn trên điện thoại.","text":"Không cần in giấy","sub":"","items":[],"value":"","icon":"none","prompt":"","bubbles":[{"from":"me","text":"Hoá đơn tháng 10 của chị đây ạ"},{"from":"them","text":"Ok em, chị chuyển khoản luôn"}],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"tin nhắn hiện lần lượt","sfx_cue":"none"},
+  {"role":"rehook","layout":"icon_point","say":"Nhưng phần đỡ mệt nhất lại là chuyện đòi tiền.","text":"Hết phải nhắc nợ","sub":"","items":[],"value":"","icon":"calendar","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"một tờ lịch lật sang ngày hẹn, chuông khẽ rung","visual_kind":"motion","visual_hint":"thẻ hoạt hình ngắn","sfx_cue":"riser"},
+  {"role":"point","layout":"title_card","say":"Đến hạn mà khách chưa trả, app tự gửi lời nhắc lịch sự thay anh chị, không ai phải ngại.","text":"Không phải gọi điện","sub":"","items":[],"value":"","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"một câu chữ lớn","sfx_cue":"none"},
+  {"role":"payoff","layout":"stat","say":"Ở quán thử nghiệm của mình, một hoá đơn chỉ mất hai mươi tám giây.","text":"Đo thật, tháng 10","sub":"","items":[],"value":"28 giây","icon":"none","prompt":"","bubbles":[],"emphasis":"","visual_prompt":"","visual_kind":"code","visual_hint":"con số lớn","sfx_cue":"ding"}],
+ "cta":{"action":"comment","say":"Bình luận MẪU, mình gửi link dùng thử.","text":"Bình luận \"MẪU\"","keyword":"MẪU"},
+ "cover":{"title":"Hoá đơn trong một chạm","alt_title":"Hết gõ hoá đơn tay","emphasis":"chạm","kicker":"MẸO NHANH"},
+ "hooks_alt":[{"hook_type":"mistake","say":"Đừng gõ hoá đơn bằng tay nữa.","text":"Đừng gõ tay nữa"},{"hook_type":"result_first","say":"Chụp một tấm, hoá đơn tự điền.","text":"Chụp là xong"}],
+ "facts_used":[{"claim":"Ở quán thử nghiệm của mình, một hoá đơn chỉ mất hai mươi tám giây.","source":"FACTS#1"}],
+ "post":{"caption":"","hashtags":[]},"notes_vi":"Video ~45s: làm hoá đơn bằng cách chụp ảnh, app tự nhắc nợ; con số 28 giây lấy từ FACTS#1."}

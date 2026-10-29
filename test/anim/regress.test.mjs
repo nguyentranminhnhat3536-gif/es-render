@@ -29,6 +29,8 @@ before(() => {
   fs.writeFileSync(path.join(baseDir, 'render.mjs'), git('show', BASE + ':render.mjs') + '\n');
   // render.mjs của BASE có thể import anim.mjs (từ khi có phần tử anim): lấy đúng bản của BASE
   try { fs.writeFileSync(path.join(baseDir, 'anim.mjs'), execFileSync('git', ['-C', REPO, 'show', BASE + ':anim.mjs'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString()); } catch (e) { /* BASE chưa có anim.mjs */ }
+  for (const f of ['libs.mjs', 'els.mjs', 'el3d.mjs']) { try { fs.writeFileSync(path.join(baseDir, f), execFileSync('git', ['-C', REPO, 'show', BASE + ':' + f], { stdio: ['ignore', 'pipe', 'ignore'] })); } catch (e) { /* BASE chưa có */ } }
+  for (const d of ['vendor', 'vendor-src']) if (fs.existsSync(path.join(REPO, d))) fs.symlinkSync(path.join(REPO, d), path.join(baseDir, d));
   // render.mjs tìm thư viện cạnh chính nó (node_modules/…) và tts.py
   fs.symlinkSync(path.join(REPO, 'node_modules'), path.join(baseDir, 'node_modules'));
   fs.symlinkSync(path.join(REPO, 'tts.py'), path.join(baseDir, 'tts.py'));
@@ -52,6 +54,10 @@ function stats(a, b) {
   for (let f = 0; (f + 1) * n <= Math.min(ra.length, rb.length); f++) { let s = 0; for (let i = f * n; i < (f + 1) * n; i++) { const d = Math.abs(ra[i] - rb[i]); s += d; if (d > mx) mx = d; } if (s / n > worst) { worst = s / n; at = f; } }
   return { frames: ma.length, sameCount: ma.length === mb.length, identical: ma.filter((x, i) => x === mb[i]).length, worstMad: +worst.toFixed(4), worstFrame: at, max: mx };
 }
+// task 9 thêm vào result: voice_track, fps, finished_at (giờ thật) — chỉ được có thêm ĐÚNG các khoá này, mọi thứ khác phải trùng base
+const ADDED = ['voice_track', 'fps', 'finished_at'];
+const sameResult = (base, cur) => { const extra = Object.keys(cur).filter((k) => !(k in base)); assert.deepEqual(extra.filter((k) => !ADDED.includes(k)), [], 'khoá mới ngoài dự kiến trong result.json');
+  const c = { ...cur }; const b = { ...base }; for (const k of ADDED) if (!(k in base)) delete c[k]; delete c.finished_at; delete b.finished_at; assert.deepEqual(c, b); };
 const resultOf = (f) => { const r = JSON.parse(fs.readFileSync(f, 'utf8')); delete r.render_seconds; return r; };
 const noAnimLog = (log) => assert.ok(!/^\d\d:\d\d:\d\d anim /m.test(log), 'no anim code path may run for a job without anim elements');
 
@@ -63,18 +69,18 @@ async function strict(t, job) {
     for (const [r, name] of [[a, 'base'], [b, 'new']]) try { execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', r.mp4, '-vf', 'select=eq(n\\,' + Math.max(0, first) + ')', '-fps_mode', 'passthrough', '-frames:v', '1', path.join(D, 'diff-' + name + '.png')]); } catch (x) { /* */ }
     assert.fail('first differing frame ' + first + ' of ' + ha.length + '/' + hb.length + ' (PNGs in ' + D + '); base rendered again is ' + (reproducible ? 'identical to base → real change' : 'different too → this machine is not reproducible for this job'));
   }
-  assert.deepEqual(resultOf(b.result), resultOf(a.result)); noAnimLog(b.log);
+  sameResult(resultOf(a.result), resultOf(b.result)); noAnimLog(b.log);
   t.diagnostic(ha.length + ' frames pixel-identical (framemd5), result.json identical; base ' + BASE);
 }
 async function noiseAware(t, job) {
   const a = await render('base', job); const b = await render('new', job);
-  if (md5(a.mp4).join() === md5(b.mp4).join()) { assert.deepEqual(resultOf(b.result), resultOf(a.result)); noAnimLog(b.log); t.diagnostic('pixel-identical (framemd5); base ' + BASE); return; }
+  if (md5(a.mp4).join() === md5(b.mp4).join()) { sameResult(resultOf(a.result), resultOf(b.result)); noAnimLog(b.log); t.diagnostic('pixel-identical (framemd5); base ' + BASE); return; }
   const a2 = await render('base', job);
   const noise = stats(a.mp4, a2.mp4); const diff = stats(a.mp4, b.mp4);
   assert.ok(diff.sameCount && diff.frames === noise.frames);
   // nhiễu khử răng cưa: mean diff khung tệ nhất ≤ 2× nhiễu base-vs-base (tối thiểu 0.5), chênh kênh ≤ 2× (tối thiểu 48)
   assert.ok(diff.worstMad <= Math.max(0.5, 2 * noise.worstMad) && diff.max <= Math.max(48, 2 * noise.max), 'base vs new ' + JSON.stringify(diff) + ' outside base vs base noise ' + JSON.stringify(noise));
-  assert.deepEqual(resultOf(b.result), resultOf(a.result)); noAnimLog(b.log);
+  sameResult(resultOf(a.result), resultOf(b.result)); noAnimLog(b.log);
   t.diagnostic('base vs base: ' + JSON.stringify(noise) + ' | base vs new: ' + JSON.stringify(diff) + '; base ' + BASE);
 }
 

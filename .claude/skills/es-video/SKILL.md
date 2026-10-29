@@ -136,6 +136,15 @@ Muốn tránh giấy phép: skill `remotion-to-hyperframes` → HyperFrames.
 - Dựng lại y hệt: chỉ tính từ `useCurrentFrame()`, `random(seed)` thay `Math.random`, không `Date`, không trạng thái mang qua khung; `@remotion/three` lái bằng frame, không bằng delta `useFrame`.
   Không có TTS/phụ đề tự động của es-render: giọng đọc là file trong `public/` (`<Audio>`).
 
+## 1b. Video ngắn chuẩn ES Short: job CreativeSpec (`kind: "spec"`)
+
+Video 30–60 s cho mạng xã hội (tip / list / tool drop) thì **không viết movie JSON** — viết CreativeSpec và để `spec/run.mjs` dựng:
+- Luật duy nhất: `spec/core.cjs` (core 1.1.0, dùng chung với es-editor). `ESC.prompt({ topic, facts, lang, target })` cho đề bài, `ESC.check(spec, { facts })` kiểm tra; ví dụ đúng ở `spec/examples/`.
+- Con số / kết quả chỉ được lấy từ FACTS (job `meta.facts`), trích trong `facts_used` (`FACTS#n`). Không có FACTS → kể các bước, không nêu số.
+- Job: `{ "kind": "spec", "standard": "es-short/1", "core": "1.1.0", "spec": {…}, "meta": { "facts": [...] } }` đẩy vào `jobs/<id>.json`.
+- CI đo giọng thật: hook nói xong ≤ 3.0 s, tổng 30–60 s, tiêu đề hook đọc được ngay khung 0 (S4b), đủ ảnh bìa 9:16 / 3:4 / 1:1. Kết quả có `outcome` (post / review / retry / fail).
+- Thử không mạng: `SPEC_FAKE_TTS=1 SPEC_MUSIC_SRC= node spec/run.mjs jobs/<id>.json out`; xem `out/<id>.result.json` → `standard`, `hook.voice_end`, `outcome`.
+
 ## 2. Luôn kiểm tra trước khi giao
 
 1. Render xong **xem khung hình** (đừng giao khi chưa nhìn):
