@@ -30,7 +30,7 @@ export async function fit(sc, { tts, rate = 6, min = 30, max = 60, hookMax = 3.0
   for (const s of sc) s.hold = s.hold != null ? s.hold : HOLD[key(s)][0];
   let hr = rate; let L = layout(sc);
   while (L.hook_end > hookMax - 0.05 && hr < 20) { hr = R(hr + 6); sc[0].voice = await tts(0, hr); L = layout(sc); log.push('hook rate +' + hr + '% → ' + L.hook_end + 's'); }
-  if (L.hook_end > hookMax) return { ok: false, code: 'E_HOOK_SLOW', msg: 'hook is spoken until ' + L.hook_end + ' s even at +' + hr + ' % (max ' + hookMax + ' s) — shorten hook.say', L, log };
+  if (L.hook_end > hookMax) return { ok: false, code: 'E_HOOK_SLOW', msg: 'hook is spoken until ' + L.hook_end + ' s even at +' + hr + ' % (max ' + hookMax + ' s) — shorten hook.say', vi: 'hook đọc xong ở ' + L.hook_end + ' s dù đã đọc nhanh +' + hr + ' % (tối đa ' + hookMax + ' s) — rút ngắn câu hook', L, log };
   const flex = (dir) => { let moved = 0; for (const s of sc) { const [, lo, hi] = HOLD[key(s)]; const nv = dir > 0 ? Math.min(hi, s.hold + 0.1) : Math.max(lo, s.hold - 0.1); moved += Math.abs(nv - s.hold); s.hold = +nv.toFixed(2); } return moved > 0.001; };
   let br = rate; L = layout(sc);
   for (let k = 0; k < 40 && (L.total > aim[1] || L.total < aim[0]); k++) {
@@ -40,8 +40,8 @@ export async function fit(sc, { tts, rate = 6, min = 30, max = 60, hookMax = 3.0
     for (let i = 1; i < sc.length; i++) if (sc[i].voice) sc[i].voice = await tts(i, br);
     L = layout(sc); log.push('body rate ' + br + '% → ' + L.total + 's');
   }
-  if (L.total > max) return { ok: false, code: 'E_TOO_LONG', msg: 'measured length ' + L.total + ' s after auto-fit (body rate ' + br + ' %) — remove about ' + Math.ceil((L.total - 52) * 2.5) + ' spoken words', L, log };
-  if (L.total < min) return { ok: false, code: 'E_TOO_SHORT', msg: 'measured length ' + L.total + ' s after auto-fit — add about ' + Math.ceil((38 - L.total) * 2.5) + ' spoken words', L, log };
+  if (L.total > max) return { ok: false, code: 'E_TOO_LONG', msg: 'measured length ' + L.total + ' s after auto-fit (body rate ' + br + ' %) — remove about ' + Math.ceil((L.total - 52) * 2.5) + ' spoken words', vi: 'đo thật dài ' + L.total + ' s (quá ' + max + ' s) — bỏ khoảng ' + Math.ceil((L.total - 52) * 2.5) + ' chữ', L, log };
+  if (L.total < min) return { ok: false, code: 'E_TOO_SHORT', msg: 'measured length ' + L.total + ' s after auto-fit — add about ' + Math.ceil((38 - L.total) * 2.5) + ' spoken words', vi: 'đo thật chỉ ' + L.total + ' s (dưới ' + min + ' s) — thêm khoảng ' + Math.ceil((38 - L.total) * 2.5) + ' chữ', L, log };
   return { ok: true, L, rates: { hook: hr, body: br }, log };
 }
 

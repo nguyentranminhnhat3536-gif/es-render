@@ -22,7 +22,7 @@ export async function compile(spec, o) {
     sc.push({ part, role: part === 'scene' ? line.role : part, n: (line.items || line.bubbles || []).length, hold: line.hold, trans: D.trans[i] ? D.trans[i].duration : 0, voice, say: line.say }); }
   // 2. exact fit (hook ≤ 3.0 s by re-synthesising ONLY the hook faster; total into 32–57 s by holds, then body rate) — before any frame is drawn
   const f = await fit(sc, { tts: (i, rate) => tts(sc[i].say, rate), rate: spec.voice.rate });
-  if (!f.ok) return { ok: false, stage: 'timing', errors: [{ code: f.code, path: f.code === 'E_HOOK_SLOW' ? '/hook/say' : '/', msg: f.msg + ' (measured)', measured: true }], log: f.log, L: f.L };
+  if (!f.ok) return { ok: false, stage: 'timing', errors: [{ code: f.code, path: f.code === 'E_HOOK_SLOW' ? '/hook/say' : '/', msg: f.msg + ' (measured)', vi: f.vi ? f.vi + ' (đo thật)' : undefined, measured: true }], log: f.log, L: f.L };
   const L = f.L; const p = D.p; const n = lines.length; const bgHtml = (T) => background({ p, G: T, W, H, brand, fontsUrl });
 
   // 3. scenes

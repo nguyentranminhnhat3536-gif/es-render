@@ -71,9 +71,10 @@ export async function standard(file, res = {}, { outDir = path.dirname(file), re
     const band = (args) => raw([...args, '-vf', 'crop=1080:920:0:380,scale=54:46:flags=area,format=rgb24']);
     const c = band(['-i', path.join(outDir, cv.file), '-frames:v', '1']); const end = res.scenes && res.scenes[1] ? res.scenes[1].t : Math.min(3, dur);
     let best = 1e9; for (let t = 0; t < end - 0.05; t += 1 / 6) best = Math.min(best, mad(band(['-ss', t.toFixed(3), '-i', file, '-frames:v', '1']), c));
-    add('S13', 'warn', best <= LIM.parity, r2(best), '≤ ' + LIM.parity + ' (unrelated scenes ≈ 45+)');
+    add('S13', 'info', best <= LIM.parity, r2(best), '≤ ' + LIM.parity + ' (unrelated scenes ≈ 45+)');
   }
-  const fails = checks.filter((c) => !c.ok); const errors = fails.filter((c) => c.level === 'error');
+  // S13 chỉ ghi số đo (level info): bìa được phép khác chữ hook (W_COVER_ECHO) nên không tính là cảnh báo
+  const fails = checks.filter((c) => !c.ok && c.level !== 'info'); const errors = fails.filter((c) => c.level === 'error');
   return { standard: 'es-short/1', pass: !errors.length, report_only, checks, failed: fails.map((c) => c.id) };
 }
 
